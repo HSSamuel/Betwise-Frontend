@@ -1,8 +1,8 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
-// FIX: Simplified the import path
-import MainLayout from "../components/MainLayout";
+// FIX: Corrected the import path to use the original, case-sensitive folder name "Layout".
+import MainLayout from "../components/Layout/MainLayout";
 import HomePage from "../pages/public/HomePage";
 import LoginPage from "../pages/public/LoginPage";
 import RegisterPage from "../pages/public/RegisterPage";

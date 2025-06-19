@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-// FIX: Simplified the import path
-import Sidebar from "../../components/Sidebar";
+// FIX: Using the correct, original path to the Sidebar component.
+import Sidebar from "../../components/Layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { FaBars } from "react-icons/fa";
 
