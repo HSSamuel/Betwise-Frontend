@@ -1,21 +1,20 @@
-import React, { useState } from "react"; // <-- Import useState
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../../components/layout/Sidebar";
+// FIX: Corrected the capitalization of the 'Layout' folder in the import path.
+import Sidebar from "../../components/Layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
-import { FaBars } from "react-icons/fa"; // <-- Import the hamburger icon
+import { FaBars } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false); // <-- State to manage sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Pass the state and setter function to the Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-          {/* --- Hamburger Button (Mobile Only) --- */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-gray-500 focus:outline-none md:hidden"
