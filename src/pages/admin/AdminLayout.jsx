@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 // FIX: Corrected the capitalization of the 'Layout' folder.
-import Sidebar from "../../components/Layout/Sidebar";
+import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { FaBars } from "react-icons/fa";
 
