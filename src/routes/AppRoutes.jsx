@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
-// FIX: Corrected the capitalization of the 'Layout' folder in the import path.
+// FIX: Corrected the capitalization of the 'Layout' folder.
 import MainLayout from "../components/Layout/MainLayout";
 import HomePage from "../pages/public/HomePage";
 import LoginPage from "../pages/public/LoginPage";
