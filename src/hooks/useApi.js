@@ -23,7 +23,7 @@ export const useApi = (apiFunc) => {
         // FIX: Added specific check for 401 Unauthorized errors.
         let errorMessage;
         if (err.response && err.response.status === 401) {
-          errorMessage = "Please log in first.";
+          errorMessage = "Kindly resgister or login first.";
         } else {
           errorMessage =
             err.response?.data?.errors?.[0]?.msg ||
