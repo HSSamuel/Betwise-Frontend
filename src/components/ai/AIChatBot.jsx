@@ -42,7 +42,8 @@ const AIChatBot = ({ isOpen, onClose }) => {
       context
     );
 
-    if (aiResponse) {
+    // FIX: Check for a valid response AND a valid reply text.
+    if (aiResponse && aiResponse.reply) {
       const aiMessage = { role: "model", parts: [{ text: aiResponse.reply }] };
 
       if (aiResponse.betSlip) {
@@ -63,6 +64,7 @@ const AIChatBot = ({ isOpen, onClose }) => {
       }
       setMessages((prev) => [...prev, aiMessage]);
     } else {
+      // This is the fallback for any kind of error or empty reply.
       setMessages((prev) => [
         ...prev,
         {
