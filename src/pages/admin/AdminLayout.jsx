@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-// FIX: Using the correct, original path to the Sidebar component.
+// FIX: Corrected path to use capital "L" for Layout
 import Sidebar from "../../components/Layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { FaBars } from "react-icons/fa";

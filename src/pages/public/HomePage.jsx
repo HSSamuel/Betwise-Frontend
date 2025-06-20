@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { useGameFeeds } from "../../hooks/useGameFeeds"; // <-- IMPORT THE NEW HOOK
+import {
+  getGames,
+  getPersonalizedFeed,
+  getGameSuggestions,
+} from "../../services/gameService";
+import {
+  getRecommendedGames,
+  getGeneralSportsNews,
+} from "../../services/aiService";
+import { useApi } from "../../hooks/useApi";
+// FIX: Corrected all component import paths to use capital letters
+import GameList from "../../components/Games/GameList";
+import BetSlip from "../../components/bets/BetSlip";
+import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
-import GameList from "../../components/games/GameList";
-import BetSlip from "../../components/bets/BetSlip";
-import GameCardSkeleton from "../../components/games/GameCardSkeleton";
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
@@ -12,7 +22,6 @@ import Button from "../../components/ui/Button";
 import { formatDate } from "../../utils/formatDate";
 import OddsDisplay from "../../components/Games/OddsDisplay";
 import { FaRegSadTear, FaChartLine, FaTrophy } from "react-icons/fa";
-import Tabs from "../../components/ui/Tabs";
 
 const HeroSection = ({ onBrowseClick }) => (
   <div className="relative rounded-xl overflow-hidden mb-8 h-80 flex items-center justify-center text-center text-white bg-gray-800">
@@ -101,55 +110,96 @@ const EmptyState = ({ icon, title, message }) => (
 const HomePage = () => {
   const { user } = useAuth();
   const socket = useSocket();
-  const gamesSectionRef = useRef(null);
-
+  const [liveGames, setLiveGames] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
   const [activeTab, setActiveTab] = useState(user ? "recommend" : "upcoming");
 
-  // All state and fetching logic is now handled by this single custom hook.
-  const { games, setGames, isLoading, resultsDate, setResultsDate } =
-    useGameFeeds();
+  const {
+    data: upcomingData,
+    loading: upcomingLoading,
+    request: fetchUpcoming,
+  } = useApi(getGames);
+  const {
+    data: liveData,
+    loading: liveLoading,
+    request: fetchLive,
+  } = useApi(getGames);
+  const {
+    data: finishedData,
+    loading: finishedLoading,
+    request: fetchFinished,
+  } = useApi(getGames);
+  const {
+    data: recommendationsData,
+    loading: recsLoading,
+    request: fetchRecs,
+  } = useApi(getRecommendedGames);
+  const {
+    data: feedData,
+    loading: feedLoading,
+    request: fetchFeed,
+  } = useApi(getPersonalizedFeed);
+  const {
+    data: suggestionsData,
+    loading: suggestionsLoading,
+    request: fetchSuggestions,
+  } = useApi(getGameSuggestions);
+  const {
+    data: newsData,
+    loading: newsLoading,
+    error: newsError,
+    request: fetchNews,
+  } = useApi(getGeneralSportsNews);
 
-  // The socket listener now updates the state managed by the hook.
+  const isLoading =
+    upcomingLoading ||
+    liveLoading ||
+    finishedLoading ||
+    newsLoading ||
+    (user && (recsLoading || feedLoading || suggestionsLoading));
+  const gamesSectionRef = useRef(null);
+
+  useEffect(() => {
+    fetchUpcoming({ status: "upcoming", limit: 20 });
+    fetchLive({ status: "live" });
+    fetchFinished({ status: "finished", limit: 10, order: "desc" });
+    fetchNews();
+    if (user) {
+      fetchRecs();
+      fetchFeed();
+      fetchSuggestions();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (liveData?.games) {
+      setLiveGames(liveData.games);
+    }
+  }, [liveData]);
+
   useEffect(() => {
     if (!socket) return;
     const handleGameUpdate = (updatedGame) => {
-      setGames((prev) => {
-        const newLists = { ...prev };
-
-        // Remove the updated game from all lists first
-        newLists.upcoming = newLists.upcoming.filter(
-          (g) => g._id !== updatedGame._id
-        );
-        newLists.live = newLists.live.filter((g) => g._id !== updatedGame._id);
-        newLists.finished = newLists.finished.filter(
-          (g) => g._id !== updatedGame._id
-        );
-
-        // Add the updated game to the correct list
-        if (newLists[updatedGame.status]) {
-          newLists[updatedGame.status] = [
-            updatedGame,
-            ...newLists[updatedGame.status],
-          ];
+      setLiveGames((prevLiveGames) => {
+        const list = prevLiveGames.filter((g) => g._id !== updatedGame._id);
+        if (updatedGame.status === "live") {
+          list.unshift(updatedGame);
         }
-
-        return newLists;
+        return list;
       });
     };
     socket.on("gameUpdate", handleGameUpdate);
     return () => socket.off("gameUpdate", handleGameUpdate);
-  }, [socket, setGames]);
+  }, [socket]);
 
   const handleBrowseClick = () => {
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const featuredGame = useMemo(() => {
-    const gameList =
-      games.recommendations.length > 0 ? games.recommendations : games.upcoming;
-    return gameList.length > 0 ? gameList[0] : null;
-  }, [games.recommendations, games.upcoming]);
+    const games = recommendationsData?.games || upcomingData?.games;
+    return games && games.length > 0 ? games[0] : null;
+  }, [recommendationsData, upcomingData]);
 
   const handleSearchComplete = (games) => {
     setSearchResults(games);
@@ -175,44 +225,37 @@ const HomePage = () => {
     return <GameList games={data} />;
   };
 
-  const availableTabs = useMemo(() => {
-    const publicTabs = [
-      { name: "upcoming", label: "Upcoming" },
-      { name: "results", label: "Results" },
-    ];
-
-    const userTabs = [
-      { name: "recommend", label: "Recommended" },
-      { name: "feed", label: "Your Leagues" },
-      { name: "suggestions", label: "Suggestions" },
-    ];
-
-    return user ? [...userTabs, ...publicTabs] : publicTabs;
-  }, [user]);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
         <HeroSection onBrowseClick={handleBrowseClick} />
         {!isLoading && <FeaturedGame game={featuredGame} />}
+
         <AISearchBar
           onSearchComplete={handleSearchComplete}
           onClear={handleClearSearch}
         />
-        {(isLoading || games.live.length > 0) && (
+
+        {(liveLoading || liveGames.length > 0) && (
           <div>
             <h2 className="text-3xl font-bold mb-4 text-red-500 animate-pulse">
               Live Matches
             </h2>
-            {renderTabContent(games.live, isLoading, null)}
+            {renderTabContent(liveGames, liveLoading, null)}
           </div>
         )}
+
         {user && (
           <>
             <AINewsSummary />
-            <WorldSportsNews />
+            <WorldSportsNews
+              newsData={newsData}
+              loading={newsLoading}
+              error={newsError}
+            />
           </>
         )}
+
         <div ref={gamesSectionRef}>
           {searchResults ? (
             <div>
@@ -221,79 +264,117 @@ const HomePage = () => {
             </div>
           ) : (
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-3xl font-bold">Matches & Results</h2>
-                {activeTab === "results" && (
-                  <input
-                    type="date"
-                    value={resultsDate.toISOString().split("T")[0]}
-                    onChange={(e) => setResultsDate(new Date(e.target.value))}
-                    className="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+              <h2 className="text-3xl font-bold mb-4">Matches & Results</h2>
+              <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
+                {user && (
+                  <>
+                    <button
+                      onClick={() => setActiveTab("recommend")}
+                      className={`px-4 py-2 font-semibold rounded-t-lg ${
+                        activeTab === "recommend"
+                          ? "bg-white dark:bg-gray-800"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      Recommended
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("feed")}
+                      className={`px-4 py-2 font-semibold rounded-t-lg ${
+                        activeTab === "feed"
+                          ? "bg-white dark:bg-gray-800"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      Your Leagues
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("suggestions")}
+                      className={`px-4 py-2 font-semibold rounded-t-lg ${
+                        activeTab === "suggestions"
+                          ? "bg-white dark:bg-gray-800"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      Suggestions
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => setActiveTab("upcoming")}
+                  className={`px-4 py-2 font-semibold rounded-t-lg ${
+                    activeTab === "upcoming"
+                      ? "bg-white dark:bg-gray-800"
+                      : "bg-gray-100 dark:bg-gray-700"
+                  }`}
+                >
+                  Upcoming
+                </button>
+                <button
+                  onClick={() => setActiveTab("results")}
+                  className={`px-4 py-2 font-semibold rounded-t-lg ${
+                    activeTab === "results"
+                      ? "bg-white dark:bg-gray-800"
+                      : "bg-gray-100 dark:bg-gray-700"
+                  }`}
+                >
+                  Results
+                </button>
+              </div>
+
+              {activeTab === "upcoming" &&
+                renderTabContent(
+                  upcomingData?.games,
+                  upcomingLoading,
+                  <EmptyState
+                    icon={<FaChartLine />}
+                    title="No Upcoming Games"
+                    message="Please check back later for new matches."
                   />
                 )}
-              </div>
-
-              <Tabs
-                tabs={availableTabs}
-                activeTab={activeTab}
-                onTabClick={setActiveTab}
-              />
-
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-b-lg">
-                {activeTab === "upcoming" &&
-                  renderTabContent(
-                    games.upcoming,
-                    isLoading,
-                    <EmptyState
-                      icon={<FaChartLine />}
-                      title="No Upcoming Games"
-                      message="Please check back later for new matches."
-                    />
-                  )}
-                {activeTab === "results" &&
-                  renderTabContent(
-                    games.finished,
-                    isLoading,
-                    <EmptyState
-                      icon={<FaTrophy />}
-                      title="No Results Found"
-                      message="There are no finished games for the selected date."
-                    />
-                  )}
-                {user &&
-                  activeTab === "recommend" &&
-                  renderTabContent(
-                    games.recommendations,
-                    isLoading,
-                    <EmptyState
-                      icon={<FaRegSadTear />}
-                      title="No Recommendations Yet"
-                      message="Place some bets to start getting personalized recommendations."
-                    />
-                  )}
-                {user &&
-                  activeTab === "feed" &&
-                  renderTabContent(
-                    games.feed,
-                    isLoading,
-                    <EmptyState
-                      icon={<FaRegSadTear />}
-                      title="Your Feed is Empty"
-                      message="Bet on games from your favorite leagues to populate this feed."
-                    />
-                  )}
-                {user &&
-                  activeTab === "suggestions" &&
-                  renderTabContent(
-                    games.suggestions,
-                    isLoading,
-                    <EmptyState
-                      icon={<FaRegSadTear />}
-                      title="No Suggestions For You"
-                      message="We're still learning your preferences! Keep betting to get suggestions."
-                    />
-                  )}
-              </div>
+              {activeTab === "results" &&
+                renderTabContent(
+                  finishedData?.games,
+                  finishedLoading,
+                  <EmptyState
+                    icon={<FaTrophy />}
+                    title="No Recent Results"
+                    message="Finished games from the last 24 hours will appear here."
+                  />
+                )}
+              {user &&
+                activeTab === "recommend" &&
+                renderTabContent(
+                  recommendationsData?.games,
+                  recsLoading,
+                  <EmptyState
+                    icon={<FaRegSadTear />}
+                    title="No Recommendations Yet"
+                    message="Place some bets to start getting personalized recommendations."
+                  />
+                )}
+              {user &&
+                activeTab === "feed" &&
+                renderTabContent(
+                  feedData?.games,
+                  feedLoading,
+                  <EmptyState
+                    icon={<FaRegSadTear />}
+                    title="Your Feed is Empty"
+                    message="Bet on games from your favorite leagues to populate this feed."
+                  />
+                )}
+              {user &&
+                activeTab === "suggestions" &&
+                renderTabContent(
+                  suggestionsData?.suggestions,
+                  suggestionsLoading,
+                  <EmptyState
+                    icon={<FaRegSadTear />}
+                    title="No Suggestions For You"
+                    message="We're still learning your preferences! Keep betting to get suggestions."
+                  />
+                )}
             </div>
           )}
         </div>
