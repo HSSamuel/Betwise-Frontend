@@ -1,38 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { getMe } from "../../services/authService";
 import { toast } from "react-hot-toast";
 import Spinner from "../../components/ui/Spinner";
 import api from "../../services/api";
 
 const SocialAuthCallback = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth(); // Changed from 'login' to 'setUser' for direct state update
+  const { setUser } = useAuth();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const completeSocialLogin = async () => {
-      // FIX: Read tokens from the URL query parameters
+      // 1. Read the tokens from the URL sent by the backend
       const accessToken = searchParams.get("accessToken");
       const refreshToken = searchParams.get("refreshToken");
 
       if (accessToken && refreshToken) {
         try {
-          // Store tokens and update API headers
+          // 2. Store tokens in local storage and set the auth header for future requests
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", refreshToken);
           api.defaults.headers.common[
             "Authorization"
           ] = `Bearer ${accessToken}`;
 
-          // Fetch the full user profile with the new token
-          const { user } = await require("../../services/authService").getMe();
+          // 3. Fetch the full user profile with the new token
+          const userProfile = await getMe();
 
-          if (user) {
-            setUser(user); // Set the user in the auth context
-            toast.success(`Welcome, ${user.firstName}!`);
-            navigate("/"); // Redirect to homepage
+          if (userProfile) {
+            // 4. Set the user in the global context
+            setUser(userProfile);
+            toast.success(`Welcome, ${userProfile.firstName}!`);
+            // 5. Redirect to the homepage, successfully logged in
+            navigate("/");
           } else {
             throw new Error("Could not retrieve user profile.");
           }
@@ -43,8 +46,8 @@ const SocialAuthCallback = () => {
           setTimeout(() => navigate("/login"), 3000);
         }
       } else {
-        // Handle case where tokens are not in the URL
-        setError("Authentication tokens were not found.");
+        // This handles the case where the URL does not contain the required tokens
+        setError("Authentication tokens were not found in the redirect.");
         toast.error("Authentication failed. Please try again.");
         setTimeout(() => navigate("/login"), 3000);
       }
