@@ -20,10 +20,10 @@ export const useApi = (apiFunc) => {
         setData(result);
         return result;
       } catch (err) {
-        // FIX: Added specific check for 401 Unauthorized errors.
         let errorMessage;
+        // FIX: Corrected typo "resgister" to "register"
         if (err.response && err.response.status === 401) {
-          errorMessage = "Kindly resgister or login first.";
+          errorMessage = "Kindly register or login first.";
         } else {
           errorMessage =
             err.response?.data?.errors?.[0]?.msg ||

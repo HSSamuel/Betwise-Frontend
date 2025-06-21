@@ -1,19 +1,18 @@
+// In: Bet/Frontend/src/components/bets/BetSlip.jsx
+
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useBetSlip } from "../../contexts/BetSlipContext";
 import { useApi } from "../../hooks/useApi";
 import { placeMultiBet, placeMultipleSingles } from "../../services/betService";
-import { getGameSuggestions } from "../../services/gameService"; // Import game suggestions
+import { getGameSuggestions } from "../../services/gameService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
-import { FaLightbulb, FaPlus } from "react-icons/fa"; // Import new icons
+import { FaLightbulb, FaPlus } from "react-icons/fa";
 
-// FIX: Add the missing HotTip component definition
 const HotTip = ({ tip, onAdd }) => {
   if (!tip) return null;
-
-  // Determine the most likely outcome based on the lowest odds
   const outcomes = [
     { outcome: "A", odds: tip.odds.home, label: "Home Win" },
     { outcome: "B", odds: tip.odds.away, label: "Away Win" },
@@ -83,10 +82,11 @@ const BetSlip = () => {
 
   const handleGetHotTip = async () => {
     const result = await fetchHotTip();
+    // FIX: The `else` block that showed the redundant toast has been removed.
+    // If `result` is falsy, it's because the API call failed, and `useApi`
+    // has already displayed the correct error message.
     if (result && result.suggestions.length > 0) {
       setHotTip(result.suggestions[0]);
-    } else {
-      toast.error("Could not find a suggestion at this time.");
     }
   };
 
@@ -197,12 +197,12 @@ const BetSlip = () => {
                 value={betType}
                 onChange={(e) => setBetType(e.target.value)}
                 className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
-                disabled={false}
+                disabled={selections.length < 2}
               >
                 <option value="Single">Singles</option>
-                {selections.length >= 2 && (
-                  <option value="Multi">Multi (Accumulator)</option>
-                )}
+                <option value="Multi" disabled={selections.length < 2}>
+                  Multi (Accumulator)
+                </option>
               </select>
             </div>
             <div className="mb-4">
@@ -265,4 +265,3 @@ const BetSlip = () => {
 };
 
 export default BetSlip;
-// This code defines a BetSlip component that allows users to manage their betting selections, place bets, and view potential payouts. It includes features like single and multi-bets, dynamic updates based on user input, and integration with an AI-powered hot tip system for quick betting suggestions.
