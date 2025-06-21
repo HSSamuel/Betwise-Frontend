@@ -1,20 +1,14 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import {
-  getGames,
-  getPersonalizedFeed,
-  getGameSuggestions,
-} from "../../services/gameService";
-import {
-  getRecommendedGames,
-  getGeneralSportsNews,
-} from "../../services/aiService";
 import { useApi } from "../../hooks/useApi";
+import { useAuth } from "../../contexts/AuthContext";
+import { useGameFeeds } from "../../hooks/useGameFeeds"; // Your primary data hook
+import { getGeneralSportsNews } from "../../services/aiService";
+
+// Component Imports
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
 import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import OddsDisplay from "../../components/Games/OddsDisplay";
-import { useAuth } from "../../contexts/AuthContext";
-import { useGameFeeds } from "../../hooks/useGameFeeds"; // Import the main hook
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
@@ -111,9 +105,8 @@ const HomePage = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [activeTab, setActiveTab] = useState(user ? "recommend" : "upcoming");
 
-  // --- FIX: Centralized data fetching through the custom hook ---
-  const { games, isLoading, fetchAll } = useGameFeeds();
-  // --- END FIX ---
+  // --- ALL GAME DATA NOW COMES FROM THIS SINGLE HOOK ---
+  const { games, isLoading } = useGameFeeds();
 
   const {
     data: newsData,
@@ -132,13 +125,12 @@ const HomePage = () => {
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // FIX: isLoading now correctly reflects all game fetching states
-  const pageIsLoading = isLoading || newsLoading;
-
   const featuredGame = useMemo(() => {
     const gamesForFeatured =
-      games.recommendations.length > 0 ? games.recommendations : games.upcoming;
-    return gamesForFeatured.length > 0 ? gamesForFeatured[0] : null;
+      games.recommendations?.length > 0
+        ? games.recommendations
+        : games.upcoming;
+    return gamesForFeatured?.length > 0 ? gamesForFeatured[0] : null;
   }, [games.recommendations, games.upcoming]);
 
   const handleSearchComplete = (searchResultGames) => {
@@ -169,15 +161,15 @@ const HomePage = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
         <HeroSection onBrowseClick={handleBrowseClick} />
-        {!pageIsLoading && <FeaturedGame game={featuredGame} />}
+        {!isLoading && <FeaturedGame game={featuredGame} />}
 
         <AISearchBar
           onSearchComplete={handleSearchComplete}
           onClear={handleClearSearch}
         />
 
-        {/* FIX: Use the games.live state from the hook, which is now updated by sockets */}
-        {(isLoading || games.live.length > 0) && (
+        {/* This section now correctly uses the centralized state from the hook */}
+        {(isLoading || (games?.live && games.live.length > 0)) && (
           <div>
             <h2 className="text-3xl font-bold mb-4 text-red-500 animate-pulse">
               Live Matches
@@ -263,7 +255,6 @@ const HomePage = () => {
                 </button>
               </div>
 
-              {/* FIX: Render content using the `games` object from the hook */}
               {activeTab === "upcoming" &&
                 renderTabContent(
                   games.upcoming,

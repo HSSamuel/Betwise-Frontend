@@ -6,6 +6,11 @@ export const getGames = async (params) => {
   return response.data;
 };
 
+export const getLiveGamesFeed = async () => {
+  const response = await api.get("/games/live");
+  return response.data;
+};
+
 export const getGameById = async (id) => {
   const response = await api.get(`/games/${id}`);
   return response.data;
