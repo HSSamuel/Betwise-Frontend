@@ -19,7 +19,7 @@ import {
 import { useApi } from "../../hooks/useApi";
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
-import GameCardSkeleton from "../../components/games/GameCardSkeleton";
+import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import OddsDisplay from "../../components/Games/OddsDisplay";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
