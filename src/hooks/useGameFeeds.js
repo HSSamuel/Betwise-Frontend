@@ -5,7 +5,6 @@ import {
   getGames,
   getPersonalizedFeed,
   getGameSuggestions,
-  getLiveGamesFeed, // Correctly imported
 } from "../services/gameService";
 import { getRecommendedGames } from "../services/aiService";
 import { useAuth } from "./useAuth";
@@ -28,20 +27,12 @@ export const useGameFeeds = () => {
 
   const [resultsDate, setResultsDate] = useState(new Date());
 
-  // API hooks for each data source
+  // API hooks for all data *except* live games
   const {
     data: upcomingData,
     loading: upcomingLoading,
     request: fetchUpcoming,
   } = useApi(getGames);
-
-  // --- FIX: Use the new dedicated service for fetching live games ---
-  const {
-    data: liveData,
-    loading: liveLoading,
-    request: fetchLive,
-  } = useApi(getLiveGamesFeed);
-
   const {
     data: finishedData,
     loading: finishedLoading,
@@ -63,16 +54,15 @@ export const useGameFeeds = () => {
     request: fetchSuggestions,
   } = useApi(getGameSuggestions);
 
+  // isLoading no longer includes a `liveLoading` state
   const isLoading =
     upcomingLoading ||
-    liveLoading ||
     finishedLoading ||
     (user && (recsLoading || feedLoading || suggestionsLoading));
 
-  // fetchAll now correctly calls the new fetchLive function
+  // fetchAll no longer includes a `fetchLive` call
   const fetchAll = useCallback(() => {
     fetchUpcoming({ status: "upcoming", limit: 20 });
-    fetchLive(); // This now calls the correct getLiveGamesFeed
     const date_filter = resultsDate.toISOString().split("T")[0];
     fetchFinished({
       status: "finished",
@@ -88,7 +78,6 @@ export const useGameFeeds = () => {
   }, [
     resultsDate,
     fetchUpcoming,
-    fetchLive,
     fetchFinished,
     fetchRecs,
     fetchFeed,
@@ -100,16 +89,10 @@ export const useGameFeeds = () => {
     fetchAll();
   }, [fetchAll]);
 
+  // Effects to update state from API calls (excluding live games)
   useEffect(() => {
     setGames((prev) => ({ ...prev, upcoming: upcomingData?.games || [] }));
   }, [upcomingData]);
-
-  // This effect correctly sets the initial list of live games from the API
-  useEffect(() => {
-    if (liveData?.games) {
-      setGames((prev) => ({ ...prev, live: liveData.games }));
-    }
-  }, [liveData]);
 
   useEffect(() => {
     setGames((prev) => ({ ...prev, finished: finishedData?.games || [] }));
@@ -132,11 +115,16 @@ export const useGameFeeds = () => {
       }));
   }, [suggestionsData, user]);
 
-  // This useEffect correctly handles all real-time updates from the socket
+  // This single useEffect now manages all live game state via WebSockets
   useEffect(() => {
     if (!socket) return;
 
-    // Handles single game updates (e.g., status change, score change)
+    // Handles the initial list of live games sent upon connection
+    const handleAllLiveGames = (allLiveGames) => {
+      setGames((prev) => ({ ...prev, live: allLiveGames }));
+    };
+
+    // Handles subsequent real-time updates for individual games
     const handleGameUpdate = (updatedGame) => {
       setGames((prev) => {
         const newUpcoming = prev.upcoming.filter(
@@ -156,17 +144,17 @@ export const useGameFeeds = () => {
       });
     };
 
+    socket.on("allLiveGames", handleAllLiveGames);
     socket.on("gameUpdate", handleGameUpdate);
 
-    // Cleanup function to prevent memory leaks
     return () => {
+      socket.off("allLiveGames", handleAllLiveGames);
       socket.off("gameUpdate", handleGameUpdate);
     };
   }, [socket]);
 
   return {
     games,
-    setGames,
     isLoading,
     fetchAll,
     resultsDate,
