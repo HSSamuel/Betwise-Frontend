@@ -9,13 +9,12 @@ import {
   getGeneralSportsNews,
 } from "../../services/aiService";
 import { useApi } from "../../hooks/useApi";
-// FIX: Corrected all component import paths to use the correct, case-sensitive folder names ("Games", "Layout", etc.)
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
 import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import OddsDisplay from "../../components/Games/OddsDisplay";
 import { useAuth } from "../../contexts/AuthContext";
-import { useSocket } from "../../contexts/SocketContext";
+import { useGameFeeds } from "../../hooks/useGameFeeds"; // Import the main hook
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
@@ -109,41 +108,13 @@ const EmptyState = ({ icon, title, message }) => (
 
 const HomePage = () => {
   const { user } = useAuth();
-  const socket = useSocket();
-  const [liveGames, setLiveGames] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
   const [activeTab, setActiveTab] = useState(user ? "recommend" : "upcoming");
 
-  const {
-    data: upcomingData,
-    loading: upcomingLoading,
-    request: fetchUpcoming,
-  } = useApi(getGames);
-  const {
-    data: liveData,
-    loading: liveLoading,
-    request: fetchLive,
-  } = useApi(getGames);
-  const {
-    data: finishedData,
-    loading: finishedLoading,
-    request: fetchFinished,
-  } = useApi(getGames);
-  const {
-    data: recommendationsData,
-    loading: recsLoading,
-    request: fetchRecs,
-  } = useApi(getRecommendedGames);
-  const {
-    data: feedData,
-    loading: feedLoading,
-    request: fetchFeed,
-  } = useApi(getPersonalizedFeed);
-  const {
-    data: suggestionsData,
-    loading: suggestionsLoading,
-    request: fetchSuggestions,
-  } = useApi(getGameSuggestions);
+  // --- FIX: Centralized data fetching through the custom hook ---
+  const { games, isLoading, fetchAll } = useGameFeeds();
+  // --- END FIX ---
+
   const {
     data: newsData,
     loading: newsLoading,
@@ -151,58 +122,27 @@ const HomePage = () => {
     request: fetchNews,
   } = useApi(getGeneralSportsNews);
 
-  const isLoading =
-    upcomingLoading ||
-    liveLoading ||
-    finishedLoading ||
-    newsLoading ||
-    (user && (recsLoading || feedLoading || suggestionsLoading));
   const gamesSectionRef = useRef(null);
 
   useEffect(() => {
-    fetchUpcoming({ status: "upcoming", limit: 20 });
-    fetchLive({ status: "live" });
-    fetchFinished({ status: "finished", limit: 10, order: "desc" });
     fetchNews();
-    if (user) {
-      fetchRecs();
-      fetchFeed();
-      fetchSuggestions();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (liveData?.games) {
-      setLiveGames(liveData.games);
-    }
-  }, [liveData]);
-
-  useEffect(() => {
-    if (!socket) return;
-    const handleGameUpdate = (updatedGame) => {
-      setLiveGames((prevLiveGames) => {
-        const list = prevLiveGames.filter((g) => g._id !== updatedGame._id);
-        if (updatedGame.status === "live") {
-          list.unshift(updatedGame);
-        }
-        return list;
-      });
-    };
-    socket.on("gameUpdate", handleGameUpdate);
-    return () => socket.off("gameUpdate", handleGameUpdate);
-  }, [socket]);
+  }, [fetchNews]);
 
   const handleBrowseClick = () => {
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const featuredGame = useMemo(() => {
-    const games = recommendationsData?.games || upcomingData?.games;
-    return games && games.length > 0 ? games[0] : null;
-  }, [recommendationsData, upcomingData]);
+  // FIX: isLoading now correctly reflects all game fetching states
+  const pageIsLoading = isLoading || newsLoading;
 
-  const handleSearchComplete = (games) => {
-    setSearchResults(games);
+  const featuredGame = useMemo(() => {
+    const gamesForFeatured =
+      games.recommendations.length > 0 ? games.recommendations : games.upcoming;
+    return gamesForFeatured.length > 0 ? gamesForFeatured[0] : null;
+  }, [games.recommendations, games.upcoming]);
+
+  const handleSearchComplete = (searchResultGames) => {
+    setSearchResults(searchResultGames);
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -229,19 +169,20 @@ const HomePage = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
         <HeroSection onBrowseClick={handleBrowseClick} />
-        {!isLoading && <FeaturedGame game={featuredGame} />}
+        {!pageIsLoading && <FeaturedGame game={featuredGame} />}
 
         <AISearchBar
           onSearchComplete={handleSearchComplete}
           onClear={handleClearSearch}
         />
 
-        {(liveLoading || liveGames.length > 0) && (
+        {/* FIX: Use the games.live state from the hook, which is now updated by sockets */}
+        {(isLoading || games.live.length > 0) && (
           <div>
             <h2 className="text-3xl font-bold mb-4 text-red-500 animate-pulse">
               Live Matches
             </h2>
-            {renderTabContent(liveGames, liveLoading, null)}
+            {renderTabContent(games.live, isLoading, null)}
           </div>
         )}
 
@@ -322,10 +263,11 @@ const HomePage = () => {
                 </button>
               </div>
 
+              {/* FIX: Render content using the `games` object from the hook */}
               {activeTab === "upcoming" &&
                 renderTabContent(
-                  upcomingData?.games,
-                  upcomingLoading,
+                  games.upcoming,
+                  isLoading,
                   <EmptyState
                     icon={<FaChartLine />}
                     title="No Upcoming Games"
@@ -334,8 +276,8 @@ const HomePage = () => {
                 )}
               {activeTab === "results" &&
                 renderTabContent(
-                  finishedData?.games,
-                  finishedLoading,
+                  games.finished,
+                  isLoading,
                   <EmptyState
                     icon={<FaTrophy />}
                     title="No Recent Results"
@@ -345,8 +287,8 @@ const HomePage = () => {
               {user &&
                 activeTab === "recommend" &&
                 renderTabContent(
-                  recommendationsData?.games,
-                  recsLoading,
+                  games.recommendations,
+                  isLoading,
                   <EmptyState
                     icon={<FaRegSadTear />}
                     title="No Recommendations Yet"
@@ -356,8 +298,8 @@ const HomePage = () => {
               {user &&
                 activeTab === "feed" &&
                 renderTabContent(
-                  feedData?.games,
-                  feedLoading,
+                  games.feed,
+                  isLoading,
                   <EmptyState
                     icon={<FaRegSadTear />}
                     title="Your Feed is Empty"
@@ -367,8 +309,8 @@ const HomePage = () => {
               {user &&
                 activeTab === "suggestions" &&
                 renderTabContent(
-                  suggestionsData?.suggestions,
-                  suggestionsLoading,
+                  games.suggestions,
+                  isLoading,
                   <EmptyState
                     icon={<FaRegSadTear />}
                     title="No Suggestions For You"

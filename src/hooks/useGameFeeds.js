@@ -8,12 +8,14 @@ import {
 } from "../services/gameService";
 import { getRecommendedGames } from "../services/aiService";
 import { useAuth } from "./useAuth";
+import { useSocket } from "../contexts/SocketContext"; // Import the useSocket hook
 
 /**
  * A custom hook to fetch and manage all game feeds required for the HomePage.
  */
 export const useGameFeeds = () => {
   const { user } = useAuth();
+  const socket = useSocket(); // Get the socket instance from context
   const [games, setGames] = useState({
     upcoming: [],
     live: [],
@@ -80,10 +82,6 @@ export const useGameFeeds = () => {
       fetchFeed();
       fetchSuggestions();
     }
-    // FIX: The dependency array is changed.
-    // By removing the dependencies, this function's reference will be stable and
-    // the useEffect below will only run once on initial mount, not on auth change.
-    // The `if (user)` check inside is sufficient to handle fetching user-specific data.
   }, [
     resultsDate,
     fetchUpcoming,
@@ -129,6 +127,36 @@ export const useGameFeeds = () => {
         suggestions: suggestionsData?.suggestions || [],
       }));
   }, [suggestionsData, user]);
+
+  // --- FIX: Logic for handling socket updates is now inside the hook ---
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleGameUpdate = (updatedGame) => {
+      setGames((prev) => {
+        const newLiveGames = prev.live.filter((g) => g._id !== updatedGame._id);
+        const newUpcomingGames = prev.upcoming.filter(
+          (g) => g._id !== updatedGame._id
+        );
+
+        if (updatedGame.status === "live") {
+          newLiveGames.unshift(updatedGame);
+        }
+
+        return {
+          ...prev,
+          live: newLiveGames,
+          upcoming: newUpcomingGames,
+        };
+      });
+    };
+
+    socket.on("gameUpdate", handleGameUpdate);
+    return () => {
+      socket.off("gameUpdate", handleGameUpdate);
+    };
+  }, [socket]);
+  // --- END FIX ---
 
   // Expose the state and functions to the component
   return {
