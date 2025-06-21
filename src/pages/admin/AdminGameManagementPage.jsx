@@ -51,21 +51,39 @@ const AdminGameManagementPage = () => {
     }
   }, [data]);
 
-  // FIX: Correctly structured useEffect for socket listener.
+  // FIX: This useEffect now correctly handles adding, updating, and removing games.
   useEffect(() => {
     if (!socket) return;
 
     const handleGameUpdate = (updatedGame) => {
-      setGames((prevGames) =>
-        prevGames.map((game) =>
-          game._id === updatedGame._id ? updatedGame : game
-        )
-      );
+      setGames((prevGames) => {
+        const index = prevGames.findIndex((g) => g._id === updatedGame._id);
+
+        // Game is not in the list yet
+        if (index === -1) {
+          // Add it to the list (typically would be a new 'live' game)
+          return [updatedGame, ...prevGames];
+        }
+
+        // Game is already in the list, so update or remove it
+        const newGames = [...prevGames];
+
+        // If the game is no longer upcoming or live, remove it from the admin view
+        if (
+          updatedGame.status === "finished" ||
+          updatedGame.status === "cancelled"
+        ) {
+          return newGames.filter((g) => g._id !== updatedGame._id);
+        } else {
+          // Otherwise, update the game in place
+          newGames[index] = updatedGame;
+          return newGames;
+        }
+      });
     };
 
     socket.on("gameUpdate", handleGameUpdate);
 
-    // This is the required cleanup function for the effect.
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
     };
@@ -121,7 +139,6 @@ const AdminGameManagementPage = () => {
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* FIX: Render from the 'games' state variable to show real-time updates. */}
         {games.map((game) => (
           <Card key={game._id} className="flex flex-col justify-between">
             <div>
@@ -132,7 +149,6 @@ const AdminGameManagementPage = () => {
                 <StatusBadge status={game.status} />
               </div>
 
-              {/* FIX: Add the live score display logic inside the card. */}
               {game.status === "live" && game.scores ? (
                 <div className="my-2 text-center">
                   <p className="text-2xl font-bold">
