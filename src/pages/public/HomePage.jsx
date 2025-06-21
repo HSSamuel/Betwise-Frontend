@@ -19,8 +19,8 @@ import {
 import { useApi } from "../../hooks/useApi";
 import GameList from "../../components/games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
-import GameCardSkeleton from "@/components/games/GameCardSkeleton";
-import OddsDisplay from "../../../components/games/OddsDisplay";
+import GameCardSkeleton from "../../components/games/GameCardSkeleton";
+import OddsDisplay from "../../components/games/OddsDisplay";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import AISearchBar from "../../components/ai/AISearchBar";
