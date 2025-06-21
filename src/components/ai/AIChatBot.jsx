@@ -1,4 +1,3 @@
-// In: Bet/Frontend/src/components/ai/AIChatBot.jsx
 import React, { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useApi } from "../../hooks/useApi";
@@ -92,10 +91,9 @@ const AIChatBot = ({ isOpen, onClose }) => {
     return null;
   }
 
-  // FIX: Added responsive classes to the main container
   return (
-    <div className="fixed inset-0 bg-white dark:bg-gray-800 flex flex-col z-50 border border-gray-200 dark:border-gray-700 md:w-96 md:h-[520px] md:rounded-2xl md:shadow-2xl md:bottom-20 md:right-4 md:inset-auto">
-      <header className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 flex justify-between items-center md:rounded-t-2xl">
+    <div className="fixed bottom-24 right-4 left-4 h-[65vh] max-h-[520px] bg-white dark:bg-gray-800 flex flex-col z-50 rounded-2xl shadow-2xl border dark:border-gray-700 md:w-96 md:h-[520px] md:left-auto">
+      <header className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-4 flex justify-between items-center rounded-t-2xl flex-shrink-0">
         <div className="flex items-center space-x-3">
           <FaRobot size={22} className="text-green-400" />
           <h3 className="font-bold text-lg">BetWise AI Assistant</h3>
@@ -143,7 +141,7 @@ const AIChatBot = ({ isOpen, onClose }) => {
       </div>
       <form
         onSubmit={handleSubmit}
-        className="p-3 border-t bg-white dark:bg-gray-800 dark:border-gray-700 flex items-center space-x-2 md:rounded-b-2xl"
+        className="p-3 border-t bg-white dark:bg-gray-800 dark:border-gray-700 flex items-center space-x-2 rounded-b-2xl"
       >
         <input
           type="text"
@@ -166,4 +164,3 @@ const AIChatBot = ({ isOpen, onClose }) => {
 };
 
 export default AIChatBot;
-// Note: Ensure that the AIChatBot component is used within a context provider for AuthContext and BetSlipContext.

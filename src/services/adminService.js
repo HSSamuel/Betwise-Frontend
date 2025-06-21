@@ -1,5 +1,3 @@
-// In: src/services/adminService.js
-
 import api from "./api";
 
 export const getPlatformStats = async () => {
@@ -73,8 +71,29 @@ export const getRiskOverview = async () => {
   return response.data;
 };
 
-// NEW: Function to call the odds adjustment endpoint
 export const adminAdjustOdds = async (gameId, odds) => {
   const response = await api.patch(`/admin/games/${gameId}/adjust-odds`, odds);
+  return response.data;
+};
+
+// --- NEW: Functions for Team Ranking Management ---
+
+export const getRankings = async (params) => {
+  const response = await api.get("/admin/rankings", { params });
+  return response.data;
+};
+
+export const createRanking = async (teamName, ranking) => {
+  const response = await api.post("/admin/rankings", { teamName, ranking });
+  return response.data;
+};
+
+export const updateRanking = async (id, ranking) => {
+  const response = await api.patch(`/admin/rankings/${id}`, { ranking });
+  return response.data;
+};
+
+export const deleteRanking = async (id) => {
+  const response = await api.delete(`/admin/rankings/${id}`);
   return response.data;
 };

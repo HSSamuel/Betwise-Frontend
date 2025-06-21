@@ -19,6 +19,7 @@ import SettingsPage from "../pages/protected/SettingsPage";
 import AdminRoute from "./AdminRoute";
 import AdminLayout from "../pages/admin/AdminLayout";
 import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminAviatorPage from "../pages/admin/AdminAviatorPage"; //
 import AdminUserManagementPage from "../pages/admin/AdminUserManagementPage";
 import AdminGameManagementPage from "../pages/admin/AdminGameManagementPage";
 import AdminWithdrawalsPage from "../pages/admin/AdminWithdrawalsPage";
@@ -55,6 +56,7 @@ const AppRoutes = () => {
           <Route path="games" element={<AdminGameManagementPage />} />
           <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
           <Route path="risk" element={<AdminRiskPage />} />
+          <Route path="aviator" element={<AdminAviatorPage />} />
         </Route>
       </Route>
 

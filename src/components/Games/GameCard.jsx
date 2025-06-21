@@ -1,3 +1,5 @@
+// In: Bet/Frontend/src/components/Games/GameCard.jsx
+
 import React, { useState } from "react";
 import { formatDate } from "../../utils/formatDate";
 import OddsDisplay from "./OddsDisplay";
@@ -8,7 +10,7 @@ import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
 import { FaBrain } from "react-icons/fa";
 
-// A new component to render the score or VS
+// ... (MatchCenter component remains the same)
 const MatchCenter = ({ game }) => {
   if (game.status === "live") {
     return (
@@ -16,7 +18,6 @@ const MatchCenter = ({ game }) => {
         <div className="text-3xl font-bold text-green-500">
           {game.scores.home} - {game.scores.away}
         </div>
-        {/* FIX: Add pulsing animation for live time */}
         <div className="text-xs text-red-500 animate-pulse font-semibold">
           {game.elapsedTime}' LIVE
         </div>
@@ -105,4 +106,5 @@ const GameCard = ({ game }) => {
   );
 };
 
-export default GameCard;
+// FIX: Wrap the component in React.memo to prevent unnecessary re-renders.
+export default React.memo(GameCard);

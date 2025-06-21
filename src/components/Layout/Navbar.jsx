@@ -28,6 +28,10 @@ const Navbar = () => {
         : "text-gray-300 hover:bg-gray-700 hover:text-white"
     }`;
 
+  // FIX: Created a static class string for simple links and buttons in the mobile menu.
+  const mobileLinkClass =
+    "block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white";
+
   return (
     <nav className="bg-gray-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -170,27 +174,27 @@ const Navbar = () => {
                   </div>
                   <ThemeToggle />
                 </div>
-                {/* --- FIX: ADDED THIS SECTION FOR PROFILE & LOGOUT --- */}
                 <div className="mt-3 px-2 space-y-1">
                   <NavLink to="/profile" className={mobileNavLinkClass}>
                     Your Profile
                   </NavLink>
+                  {/* FIX: Used the new static 'mobileLinkClass' for the button */}
                   <button
                     onClick={logout}
-                    className={`${mobileNavLinkClass} w-full text-left`}
+                    className={`${mobileLinkClass} w-full text-left`}
                   >
                     Logout
                   </button>
                 </div>
-                {/* --- END OF FIX --- */}
               </>
             ) : (
               <div className="flex items-center justify-between px-5">
                 <div className="space-x-2">
-                  <Link to="/login" className={mobileNavLinkClass}>
+                  {/* FIX: Used the new static 'mobileLinkClass' for Login/Register */}
+                  <Link to="/login" className={mobileLinkClass}>
                     Login
                   </Link>
-                  <Link to="/register" className={mobileNavLinkClass}>
+                  <Link to="/register" className={mobileLinkClass}>
                     Register
                   </Link>
                 </div>

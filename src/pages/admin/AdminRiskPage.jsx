@@ -1,5 +1,3 @@
-// In: Bet/Frontend/src/pages/admin/AdminRiskPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { useApi } from "../../hooks/useApi";
 import {
@@ -7,7 +5,6 @@ import {
   getGameRiskAnalysis,
   getGameRiskSummary,
 } from "../../services/adminService";
-// FIX: Import `cancelGame` from the correct service file
 import { cancelGame } from "../../services/gameService";
 import Spinner from "../../components/ui/Spinner";
 import Card from "../../components/ui/Card";
@@ -26,7 +23,7 @@ import {
   FaTrashAlt,
 } from "react-icons/fa";
 
-// This sub-component shows the detailed risk breakdown for a selected game
+// --- START: RiskAnalysisDetails component is now integrated directly ---
 const RiskAnalysisDetails = ({ game, onGetSummary }) => {
   const {
     data,
@@ -41,6 +38,7 @@ const RiskAnalysisDetails = ({ game, onGetSummary }) => {
     }
   }, [game, fetchRisk]);
 
+  if (!game) return null;
   if (loading) return <Spinner />;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!data?.analysis) return null;
@@ -50,14 +48,18 @@ const RiskAnalysisDetails = ({ game, onGetSummary }) => {
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold">Risk Details</h3>
-        <Button onClick={() => onGetSummary(game._id)} size="sm">
+        <h3 className="text-xl font-bold">Risk Breakdown</h3>
+        <Button
+          onClick={() => onGetSummary(game._id)}
+          size="sm"
+          variant="outline"
+        >
           <FaBrain className="mr-2" />
           Get AI Summary
         </Button>
       </div>
       <p className="mb-4">
-        <span className="font-semibold">Total Exposure:</span>{" "}
+        <span className="font-semibold">Total Game Exposure:</span>{" "}
         <span className="font-bold text-red-600">
           {formatCurrency(analysis.totalExposure)}
         </span>
@@ -66,37 +68,40 @@ const RiskAnalysisDetails = ({ game, onGetSummary }) => {
         {Object.entries(analysis.outcomes).map(([outcome, details]) => (
           <div
             key={outcome}
-            className="p-4 border rounded-lg dark:border-gray-600"
+            className="p-4 border rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50"
           >
             <h4 className="font-bold text-lg">
               {outcome === "A"
-                ? "Home Win"
+                ? game.gameDetails.homeTeam
                 : outcome === "B"
-                ? "Away Win"
+                ? game.gameDetails.awayTeam
                 : "Draw"}
             </h4>
-            <p>
-              Total Bets:{" "}
-              <span className="font-semibold">{details.betCount}</span>
-            </p>
-            <p>
-              Total Staked:{" "}
-              <span className="font-semibold">
-                {formatCurrency(details.totalStake)}
-              </span>
-            </p>
-            <p>
-              Potential Payout:{" "}
-              <span className="font-semibold">
-                {formatCurrency(details.totalPotentialPayout)}
-              </span>
-            </p>
+            <div className="mt-2 space-y-1 text-sm">
+              <p className="flex justify-between">
+                <span>Total Bets:</span>
+                <span className="font-semibold">{details.betCount}</span>
+              </p>
+              <p className="flex justify-between">
+                <span>Total Staked:</span>
+                <span className="font-semibold">
+                  {formatCurrency(details.totalStake)}
+                </span>
+              </p>
+              <p className="flex justify-between">
+                <span>Exposure:</span>
+                <span className="font-semibold text-red-500">
+                  {formatCurrency(details.totalPotentialPayout)}
+                </span>
+              </p>
+            </div>
           </div>
         ))}
       </div>
     </Card>
   );
 };
+// --- END: RiskAnalysisDetails component integration ---
 
 const AdminRiskPage = () => {
   const {
@@ -153,6 +158,9 @@ const AdminRiskPage = () => {
 
   const handleOddsAdjusted = () => {
     fetchOverview();
+    if (selectedGame) {
+      handleViewDetails(selectedGame);
+    }
   };
 
   if (loading) {
@@ -228,7 +236,7 @@ const AdminRiskPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-2 flex justify-end space-x-2">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-2 flex justify-end space-x-2 rounded-b-lg">
                     <Button
                       variant="outline"
                       size="sm"
@@ -294,4 +302,3 @@ const AdminRiskPage = () => {
 };
 
 export default AdminRiskPage;
-// Note: This code assumes you have the necessary components and services set up as per the original context.
