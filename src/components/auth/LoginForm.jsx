@@ -54,7 +54,9 @@ const LoginForm = () => {
           required
         />
       </div>
-      <div className="mb-2"> {/* Adjusted margin for the new element */}
+      <div className="mb-2">
+        {" "}
+        {/* Adjusted margin for the new element */}
         <label className="block text-gray-700 mb-2" htmlFor="password">
           Password
         </label>

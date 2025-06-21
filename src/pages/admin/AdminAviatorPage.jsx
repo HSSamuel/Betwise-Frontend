@@ -26,8 +26,12 @@ const AdminAviatorPage = () => {
 
   const gameStateRef = useRef(gameState);
 
-  // --- START OF REPLACEMENT ---
-  // Replace your existing useEffect with this one.
+  // --- FIX: This useEffect keeps the ref in sync with the state ---
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+  // --- END FIX ---
+
   useEffect(() => {
     if (socket) {
       console.log(
@@ -71,7 +75,6 @@ const AdminAviatorPage = () => {
       }
     };
   }, [socket]);
-  // --- END OF REPLACEMENT ---
 
   // Helper function to determine the background color based on the multiplier
   const getBackgroundColor = () => {
