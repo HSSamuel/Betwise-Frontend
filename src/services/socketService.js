@@ -23,7 +23,8 @@ const SOCKET_URL = getBaseUrl(API_URL);
 export const createSocket = (token) => {
   return io(SOCKET_URL, {
     autoConnect: false,
-    path: "/betwise-socket/", // This MUST match the path on the server
+    // FIX: The path now matches the new, nested path on the server.
+    path: "/api/v1/socket.io", // This MUST match the path on the server
     auth: {
       token,
     },

@@ -1,3 +1,4 @@
+// In: Bet/Frontend/src/components/news/WorldSportsNews.jsx
 import React, { useEffect } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGeneralSportsNews } from "../../services/aiService";
