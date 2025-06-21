@@ -1,37 +1,30 @@
+// In: Bet/Frontend/src/pages/admin/AdminRiskPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { useApi } from "../../hooks/useApi";
 import {
+  getRiskOverview,
   getGameRiskAnalysis,
   getGameRiskSummary,
-  getRiskOverview,
 } from "../../services/adminService";
+// FIX: Import `cancelGame` from the correct service file
+import { cancelGame } from "../../services/gameService";
 import Spinner from "../../components/ui/Spinner";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import StatCard from "../../components/admin/StatCard";
+import AdjustOddsModal from "../../components/admin/AdjustOddsModal";
+import toast from "react-hot-toast";
 import { formatCurrency } from "../../utils/helpers";
-import { formatDate } from "../../utils/formatDate";
-// FIX: Add missing icon imports
 import {
   FaExclamationTriangle,
   FaShieldAlt,
   FaEye,
   FaBrain,
+  FaWrench,
+  FaTrashAlt,
 } from "react-icons/fa";
-
-// This is a new StatCard component, similar to the one on the main dashboard
-const StatCard = ({ title, value, icon, gradient }) => (
-  <div
-    className={`bg-gradient-to-br ${gradient} p-6 rounded-xl shadow-lg text-white`}
-  >
-    <div className="flex justify-between items-start">
-      <div className="flex flex-col">
-        <p className="text-lg font-medium opacity-90">{title}</p>
-        <p className="text-4xl font-bold tracking-tight">{value}</p>
-      </div>
-      <div className="p-3 bg-white bg-opacity-30 rounded-lg">{icon}</div>
-    </div>
-  </div>
-);
 
 // This sub-component shows the detailed risk breakdown for a selected game
 const RiskAnalysisDetails = ({ game, onGetSummary }) => {
@@ -109,13 +102,14 @@ const AdminRiskPage = () => {
   const {
     data: overview,
     loading,
-    error,
     request: fetchOverview,
   } = useApi(getRiskOverview);
-  const [selectedGame, setSelectedGame] = useState(null);
+  const { loading: cancelling, request: runCancelGame } = useApi(cancelGame);
 
-  // FIX: Add the missing state and hook for the AI Summary modal
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [isOddsModalOpen, setOddsModalOpen] = useState(false);
   const [isSummaryModalOpen, setSummaryModalOpen] = useState(false);
+
   const {
     data: summaryData,
     loading: summaryLoading,
@@ -126,26 +120,71 @@ const AdminRiskPage = () => {
     fetchOverview();
   }, [fetchOverview]);
 
+  const handleOpenOddsModal = (game) => {
+    setSelectedGame(game);
+    setOddsModalOpen(true);
+  };
+
   const handleViewDetails = (game) => {
     setSelectedGame(game);
   };
 
-  // FIX: Add the missing handler function to fetch and show the AI summary
-  const handleGetSummary = async (gameId) => {
-    await fetchSummary(gameId);
-    setSummaryModalOpen(true);
+  const handleCancelGame = async (gameId, gameName) => {
+    if (
+      window.confirm(
+        `Are you sure you want to cancel the game: ${gameName}? All bets will be refunded.`
+      )
+    ) {
+      const result = await runCancelGame(gameId);
+      if (result) {
+        toast.success("Game successfully cancelled and bets refunded.");
+        fetchOverview();
+        setSelectedGame(null);
+      }
+    }
   };
 
-  if (loading)
+  const handleGetSummary = async (gameId) => {
+    const result = await fetchSummary(gameId);
+    if (result) {
+      setSummaryModalOpen(true);
+    }
+  };
+
+  const handleOddsAdjusted = () => {
+    fetchOverview();
+  };
+
+  if (loading) {
     return (
       <div className="flex justify-center mt-10">
         <Spinner />
       </div>
     );
-  if (error) return <p className="text-red-500 text-center">{error}</p>;
+  }
 
   return (
     <div>
+      <AdjustOddsModal
+        isOpen={isOddsModalOpen}
+        onClose={() => setOddsModalOpen(false)}
+        game={selectedGame}
+        onOddsAdjusted={handleOddsAdjusted}
+      />
+      <Modal
+        isOpen={isSummaryModalOpen}
+        onClose={() => setSummaryModalOpen(false)}
+        title="AI Risk Summary"
+      >
+        {summaryLoading ? (
+          <Spinner />
+        ) : (
+          <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+            {summaryData?.summary}
+          </p>
+        )}
+      </Modal>
+
       <h1 className="text-3xl font-bold mb-6">Platform Risk Management</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -165,40 +204,72 @@ const AdminRiskPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-xl font-semibold mb-4">Top 5 Exposed Games</h2>
+          <h2 className="text-xl font-semibold mb-4">High-Exposure Games</h2>
           <div className="space-y-3">
-            {overview?.topExposedGames.map((item) => (
-              <Card
-                key={item._id}
-                className="cursor-pointer hover:border-green-500 border-transparent border"
-                onClick={() => handleViewDetails(item)}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-bold">
-                      {item.gameDetails.homeTeam} vs {item.gameDetails.awayTeam}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {item.gameDetails.league}
-                    </p>
+            {overview?.topExposedGames.length > 0 ? (
+              overview.topExposedGames.map((item) => (
+                <Card key={item._id} className="p-0">
+                  <div className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-bold">
+                          {item.gameDetails.homeTeam} vs{" "}
+                          {item.gameDetails.awayTeam}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {item.gameDetails.league}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-red-500">
+                          {formatCurrency(item.totalPotentialPayout)}
+                        </p>
+                        <p className="text-xs text-gray-400">Exposure</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-red-500">
-                      {formatCurrency(item.totalPotentialPayout)}
-                    </p>
-                    <p className="text-xs text-gray-400">Exposure</p>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-2 flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(item)}
+                    >
+                      <FaEye className="mr-2" /> View Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenOddsModal(item)}
+                    >
+                      <FaWrench className="mr-2" /> Adjust Odds
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() =>
+                        handleCancelGame(
+                          item._id,
+                          `${item.gameDetails.homeTeam} vs ${item.gameDetails.awayTeam}`
+                        )
+                      }
+                      loading={cancelling}
+                    >
+                      <FaTrashAlt className="mr-2" /> Cancel
+                    </Button>
                   </div>
-                </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="flex flex-col items-center justify-center text-center text-gray-500 py-10">
+                <FaShieldAlt size={40} className="mb-4 text-green-500" />
+                <h3 className="font-bold text-lg">No Exposed Games</h3>
+                <p>
+                  There are currently no games with significant risk exposure.
+                </p>
               </Card>
-            ))}
-            {!overview?.topExposedGames.length && (
-              <p className="text-gray-500">
-                No significant risk exposure on any upcoming games.
-              </p>
             )}
           </div>
         </div>
-
         <div>
           <h2 className="text-xl font-semibold mb-4">Risk Details</h2>
           {selectedGame ? (
@@ -207,39 +278,20 @@ const AdminRiskPage = () => {
               onGetSummary={handleGetSummary}
             />
           ) : (
-            <Card className="flex flex-col items-center justify-center text-center h-full text-gray-500">
+            <Card className="flex flex-col items-center justify-center text-center h-full text-gray-500 min-h-[200px]">
               <FaEye size={40} className="mb-4" />
-              <h3 className="font-bold">Select a Game</h3>
+              <h3 className="font-bold text-lg">Select a Game</h3>
               <p>
-                Click on a game from the list to view its detailed risk
-                analysis.
+                Click "View Details" on a game from the list to see its detailed
+                risk analysis.
               </p>
             </Card>
           )}
         </div>
       </div>
-
-      {/* Add a simple modal to display the AI summary */}
-      {isSummaryModalOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-          onClick={() => setSummaryModalOpen(false)}
-        >
-          <Card
-            className="w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold mb-4">AI Risk Summary</h3>
-            {summaryLoading ? (
-              <Spinner />
-            ) : (
-              <p className="whitespace-pre-wrap">{summaryData?.summary}</p>
-            )}
-          </Card>
-        </div>
-      )}
     </div>
   );
 };
 
 export default AdminRiskPage;
+// Note: This code assumes you have the necessary components and services set up as per the original context.

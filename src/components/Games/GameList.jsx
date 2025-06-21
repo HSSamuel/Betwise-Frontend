@@ -1,3 +1,5 @@
+// In: Bet/Frontend/src/components/Games/GameList.jsx
+
 import React from "react";
 import GameCard from "./GameCard";
 import { FaRegSadTear } from "react-icons/fa"; // Import an icon

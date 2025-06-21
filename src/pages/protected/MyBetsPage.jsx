@@ -1,3 +1,5 @@
+// In: Bet/Frontend/src/pages/protected/MyBetsPage.jsx
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getUserBets } from "../../services/betService";

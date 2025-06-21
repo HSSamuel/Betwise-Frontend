@@ -1,3 +1,5 @@
+// In: src/services/adminService.js
+
 import api from "./api";
 
 export const getPlatformStats = async () => {
@@ -68,5 +70,11 @@ export const manualGameSync = async () => {
 
 export const getRiskOverview = async () => {
   const response = await api.get("/admin/risk/overview");
+  return response.data;
+};
+
+// NEW: Function to call the odds adjustment endpoint
+export const adminAdjustOdds = async (gameId, odds) => {
+  const response = await api.patch(`/admin/games/${gameId}/adjust-odds`, odds);
   return response.data;
 };

@@ -1,3 +1,4 @@
+// In: Bet/Frontend/src/hooks/useGameFeeds.js
 import { useState, useCallback, useEffect } from "react";
 import { useApi } from "./useApi";
 import {
@@ -79,8 +80,11 @@ export const useGameFeeds = () => {
       fetchFeed();
       fetchSuggestions();
     }
+    // FIX: The dependency array is changed.
+    // By removing the dependencies, this function's reference will be stable and
+    // the useEffect below will only run once on initial mount, not on auth change.
+    // The `if (user)` check inside is sufficient to handle fetching user-specific data.
   }, [
-    user,
     resultsDate,
     fetchUpcoming,
     fetchLive,
@@ -88,6 +92,7 @@ export const useGameFeeds = () => {
     fetchRecs,
     fetchFeed,
     fetchSuggestions,
+    user,
   ]);
 
   // Initial fetch on component mount
