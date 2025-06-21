@@ -47,7 +47,7 @@ function AppContent() {
         return;
       }
 
-      cleanup(); // Clean up any old instance before creating a new one
+      cleanup();
 
       console.log("Creating new socket instance...");
       const newSocket = createSocket(token);
@@ -61,11 +61,19 @@ function AppContent() {
         newSocket.emit("joinUserRoom", user._id);
       });
 
+      // --- THIS IS THE FINAL FIX FOR THE FRONTEND ---
+      // The error handler now logs the full error object for better debugging.
       newSocket.on("connect_error", (err) => {
-        console.error(
-          `Socket Connection Error: ${err.message}. This might be due to a backend issue or invalid token.`
-        );
+        console.error("Socket Connection Error:", err); // Log the full error object
+        const errorCode = err.data?.code; // Access the custom error code
+        if (errorCode === "INVALID_TOKEN") {
+          toast.error("Your session is invalid. Please log in again.");
+          logout(); // Force logout if the token is definitively invalid
+        } else {
+          toast.error("Could not connect to real-time service.");
+        }
       });
+      // --- END OF FINAL FIX ---
 
       newSocket.connect();
     } else {
