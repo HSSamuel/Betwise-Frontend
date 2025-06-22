@@ -9,9 +9,9 @@ import {
   getGeneralSportsNews,
 } from "../../services/aiService";
 import { useApi } from "../../hooks/useApi";
-import GameList from "../../components/games/GameList";
+import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
-import GameCardSkeleton from "../../components/games/GameCardSkeleton";
+import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import AISearchBar from "../../components/ai/AISearchBar";
