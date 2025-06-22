@@ -11,7 +11,6 @@ import SetResultModal from "../../components/admin/SetResultModal";
 import { FaPlus, FaCheckCircle, FaTrashAlt } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
 
-// This component for the status badge is correct and needs no changes.
 const StatusBadge = ({ status }) => {
   const badgeStyles = {
     upcoming:
@@ -41,9 +40,14 @@ const AdminGameManagementPage = () => {
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
 
-  useEffect(() => {
+  const refetchGames = () => {
+    // This now correctly fetches 'upcoming' games by default
     fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
-  }, [fetchGames]);
+  };
+
+  useEffect(() => {
+    refetchGames();
+  }, []); // Depend on refetchGames after defining it with useCallback if needed, or just on mount
 
   useEffect(() => {
     if (data?.games) {
@@ -51,7 +55,7 @@ const AdminGameManagementPage = () => {
     }
   }, [data]);
 
-  // FIX: This useEffect now correctly handles adding, updating, and removing games.
+  // This useEffect handles real-time updates for new games or cancellations
   useEffect(() => {
     if (!socket) return;
 
@@ -59,26 +63,23 @@ const AdminGameManagementPage = () => {
       setGames((prevGames) => {
         const index = prevGames.findIndex((g) => g._id === updatedGame._id);
 
-        // Game is not in the list yet
-        if (index === -1) {
-          // Add it to the list (typically would be a new 'live' game)
+        if (index === -1 && updatedGame.status === "upcoming") {
+          // A new game was created, add it to the list
           return [updatedGame, ...prevGames];
         }
 
-        // Game is already in the list, so update or remove it
         const newGames = [...prevGames];
-
-        // If the game is no longer upcoming or live, remove it from the admin view
+        // If a game is cancelled, it should be removed from the actionable list
         if (
-          updatedGame.status === "finished" ||
-          updatedGame.status === "cancelled"
+          updatedGame.status === "cancelled" ||
+          updatedGame.status === "finished"
         ) {
           return newGames.filter((g) => g._id !== updatedGame._id);
-        } else {
-          // Otherwise, update the game in place
-          newGames[index] = updatedGame;
+        } else if (index > -1) {
+          newGames[index] = updatedGame; // Update existing game
           return newGames;
         }
+        return prevGames; // No change
       });
     };
 
@@ -89,9 +90,6 @@ const AdminGameManagementPage = () => {
     };
   }, [socket]);
 
-  const refetchGames = () =>
-    fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
-
   const handleCancelGame = async (gameId) => {
     if (
       window.confirm(
@@ -101,7 +99,7 @@ const AdminGameManagementPage = () => {
       try {
         await cancelGame(gameId);
         toast.success("Game cancelled successfully.");
-        refetchGames();
+        refetchGames(); // Refetch the list to see the change immediately
       } catch (err) {
         toast.error(err.response?.data?.msg || "Failed to cancel game.");
       }
@@ -149,40 +147,36 @@ const AdminGameManagementPage = () => {
                 <StatusBadge status={game.status} />
               </div>
 
-              {game.status === "live" && game.scores ? (
-                <div className="my-2 text-center">
-                  <p className="text-2xl font-bold">
-                    {game.homeTeam}{" "}
-                    <span className="text-red-500">{game.scores.home}</span>
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {game.awayTeam}{" "}
-                    <span className="text-red-500">{game.scores.away}</span>
-                  </p>
-                  <p className="text-xs text-red-500 animate-pulse">
-                    {game.elapsedTime}'
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-lg font-bold mb-1">{game.homeTeam}</h3>
-                  <h3 className="text-lg font-bold mb-2">vs {game.awayTeam}</h3>
-                </>
-              )}
+              {/* NEW: Added logos to the team display */}
+              <div className="flex items-center my-2">
+                <img
+                  src={game.homeTeamLogo || "/default-logo.png"}
+                  alt={game.homeTeam}
+                  className="w-8 h-8 mr-3"
+                />
+                <h3 className="text-lg font-bold">{game.homeTeam}</h3>
+              </div>
+              <div className="flex items-center my-2">
+                <img
+                  src={game.awayTeamLogo || "/default-logo.png"}
+                  alt={game.awayTeam}
+                  className="w-8 h-8 mr-3"
+                />
+                <h3 className="text-lg font-bold">{game.awayTeam}</h3>
+              </div>
 
               <p className="text-xs text-gray-400 mb-4">
                 {formatDate(game.matchDate)}
               </p>
-              {game.result && (
-                <p className="font-bold text-sm">Result: {game.result}</p>
-              )}
             </div>
 
             <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
+              {/* Actions are only available for upcoming games */}
               {game.status === "upcoming" && (
                 <>
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => openResultModal(game)}
                   >
                     <FaCheckCircle className="mr-2" />
@@ -190,6 +184,7 @@ const AdminGameManagementPage = () => {
                   </Button>
                   <Button
                     variant="danger"
+                    size="sm"
                     onClick={() => handleCancelGame(game._id)}
                   >
                     <FaTrashAlt className="mr-2" />

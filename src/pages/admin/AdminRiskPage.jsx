@@ -24,7 +24,7 @@ import {
 } from "react-icons/fa";
 
 // --- START: RiskAnalysisDetails component is now integrated directly ---
-const RiskAnalysisDetails = ({ game, onGetSummary }) => {
+const RiskAnalysisDetails = ({ game, onGetSummary, summaryLoading }) => {
   const {
     data,
     loading,
@@ -53,6 +53,8 @@ const RiskAnalysisDetails = ({ game, onGetSummary }) => {
           onClick={() => onGetSummary(game._id)}
           size="sm"
           variant="outline"
+          loading={summaryLoading}
+          disabled={summaryLoading}
         >
           <FaBrain className="mr-2" />
           Get AI Summary
@@ -284,6 +286,7 @@ const AdminRiskPage = () => {
             <RiskAnalysisDetails
               game={selectedGame}
               onGetSummary={handleGetSummary}
+              summaryLoading={summaryLoading}
             />
           ) : (
             <Card className="flex flex-col items-center justify-center text-center h-full text-gray-500 min-h-[200px]">

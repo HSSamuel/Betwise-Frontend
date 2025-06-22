@@ -52,9 +52,7 @@ const AdminAviatorPage = () => {
     };
 
     const handleTick = (data) => {
-      if (gameStateRef.current === GameState.RUNNING) {
-        setMultiplier(data.multiplier);
-      }
+      setMultiplier(data.multiplier);
     };
 
     const handleCrash = (data) => {

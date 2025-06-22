@@ -6,21 +6,20 @@ import {
   adminUpdateUserRole,
 } from "../../services/adminService";
 import Spinner from "../../components/ui/Spinner";
-import Card from "../../components/ui/Card"; // Import the Card component
-import Button from "../../components/ui/Button"; // Import the Button component
+import Card from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
 import Pagination from "../../components/ui/Pagination";
 import { FaTrashAlt, FaUserShield, FaSearch } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useDebounce } from "../../hooks/useDebounce";
 
-// New component for styling user roles
 const RoleBadge = ({ role }) => {
   const is_admin = role === "admin";
   return (
     <span
-      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+      className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
         is_admin
-          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+          ? "bg-purple-200 text-purple-800" // Darker purple text
           : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
       }`}
     >
@@ -30,7 +29,7 @@ const RoleBadge = ({ role }) => {
 };
 
 const AdminUserManagementPage = () => {
-  const [filters, setFilters] = useState({ page: 1, limit: 10, search: "" });
+  const [filters, setFilters] = useState({ page: 1, limit: 15, search: "" });
   const debouncedSearchTerm = useDebounce(filters.search, 500);
   const { data, loading, error, request: fetchUsers } = useApi(listUsers);
 
@@ -77,83 +76,171 @@ const AdminUserManagementPage = () => {
     }
   };
 
+  // Separate users into admins and regular users for rendering
+  const admins = data?.users.filter((u) => u.role === "admin") || [];
+  const regularUsers = data?.users.filter((u) => u.role !== "admin") || [];
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
-      <div className="mb-6 relative">
-        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search by name, username, or email..."
-          value={filters.search}
-          onChange={handleSearchChange}
-          className="w-full max-w-md p-2 pl-10 border rounded-md dark:bg-gray-700 dark:border-gray-600"
-        />
+      <div className="mb-6 flex justify-between items-center">
+        <div className="relative">
+          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, username, or email..."
+            value={filters.search}
+            onChange={handleSearchChange}
+            className="w-full max-w-md p-2 pl-10 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          />
+        </div>
+        {data && data.totalCount > 0 && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="font-semibold">{data.totalCount}</span> Users
+          </div>
+        )}
       </div>
 
       {loading && <Spinner />}
       {error && <p className="text-red-500 text-center">{error}</p>}
 
-      {/* Replaced table with a card grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {data?.users.map((user) => (
-          <Card key={user._id}>
-            <div className="flex items-center space-x-4">
-              <img
-                src={
-                  user.profilePicture ||
-                  `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random&color=fff`
-                }
-                alt="Profile"
-                className="w-16 h-16 rounded-full object-cover"
-              />
-              <div>
-                <h3 className="text-lg font-bold">
-                  {user.firstName} {user.lastName}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  @{user.username}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t dark:border-gray-700 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">Email:</span>
-                <span className="text-gray-600 dark:text-gray-300">
-                  {user.email}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">Role:</span>
-                <RoleBadge role={user.role} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold">Joined:</span>
-                <span className="text-gray-600 dark:text-gray-300">
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleRoleChange(user)}
+      {/* Admins Section */}
+      {admins.length > 0 && (
+        <>
+          <h2 className="text-xl font-semibold mb-3 mt-4 text-purple-700 dark:text-purple-400">
+            Administrators
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 mb-8">
+            {admins.map((user) => (
+              <Card
+                key={user._id}
+                className="!p-4 flex flex-col bg-purple-50 dark:bg-gray-800 border-2 border-purple-500"
               >
-                <FaUserShield className="mr-2" /> Change Role
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => handleDelete(user)}
+                {/* Card content is the same, just the container is styled */}
+                <div className="flex-grow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={
+                          user.profilePicture ||
+                          `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=8A2BE2&color=fff`
+                        }
+                        alt="Profile"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div>
+                        <h3 className="text-base font-bold truncate">
+                          {user.firstName} {user.lastName}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          @{user.username}
+                        </p>
+                      </div>
+                    </div>
+                    <RoleBadge role={user.role} />
+                  </div>
+                  <div className="mt-3 text-xs space-y-1">
+                    <p className="truncate text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold">Email:</span> {user.email}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Joined:</span>{" "}
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="!py-1 !px-2"
+                    onClick={() => handleRoleChange(user)}
+                  >
+                    <FaUserShield className="mr-1.5" /> Change Role
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="!py-1 !px-2"
+                    onClick={() => handleDelete(user)}
+                  >
+                    <FaTrashAlt className="mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Regular Users Section */}
+      {regularUsers.length > 0 && (
+        <>
+          {admins.length > 0 && (
+            <h2 className="text-xl font-semibold mb-3 mt-4">Users</h2>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            {regularUsers.map((user) => (
+              <Card
+                key={user._id}
+                className="!p-4 flex flex-col border-2 border-blue-500 bg-blue-50 dark:bg-gray-800"
               >
-                <FaTrashAlt className="mr-2" /> Delete
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+                <div className="flex-grow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={
+                          user.profilePicture ||
+                          `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random&color=fff`
+                        }
+                        alt="Profile"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div>
+                        <h3 className="text-base font-bold truncate">
+                          {user.firstName} {user.lastName}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          @{user.username}
+                        </p>
+                      </div>
+                    </div>
+                    <RoleBadge role={user.role} />
+                  </div>
+                  <div className="mt-3 text-xs space-y-1">
+                    <p className="truncate text-gray-600 dark:text-gray-300">
+                      <span className="font-semibold">Email:</span> {user.email}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Joined:</span>{" "}
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="!py-1 !px-2"
+                    onClick={() => handleRoleChange(user)}
+                  >
+                    <FaUserShield className="mr-1.5" /> Change Role
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="!py-1 !px-2"
+                    onClick={() => handleDelete(user)}
+                  >
+                    <FaTrashAlt className="mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {!loading && data?.users.length === 0 && (
         <p className="text-center text-gray-500 mt-8">No users found.</p>

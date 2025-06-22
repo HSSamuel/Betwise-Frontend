@@ -1,5 +1,3 @@
-// In: Bet/Frontend/src/pages/protected/MyBetsPage.jsx
-
 import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getUserBets } from "../../services/betService";
@@ -7,7 +5,7 @@ import Spinner from "../../components/ui/Spinner";
 import Pagination from "../../components/ui/Pagination";
 import { FaTicketAlt, FaInbox } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
-import BetCard from "../../components/bets/BetCard"; // <-- IMPORT the new BetCard
+import BetRow from "../../components/bets/BetRow"; // We'll use the row component
 
 const MyBetsPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
@@ -16,7 +14,7 @@ const MyBetsPage = () => {
   const socket = useSocket();
 
   const fetchLatestBets = useCallback(() => {
-    const params = { page: currentPage, limit: 10 };
+    const params = { page: currentPage, limit: 12 }; // Increased limit for table view
     if (statusFilter) {
       params.status = statusFilter;
     }
@@ -70,16 +68,44 @@ const MyBetsPage = () => {
         <p className="text-center p-4 text-red-500">{error}</p>
       )}
 
-      {/* This is the new card-based layout */}
+      {/* NEW: Table Layout */}
       {!loading && data?.bets.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {data.bets.map((bet) => (
-            <BetCard key={bet._id} bet={bet} />
-          ))}
+        <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">
+                  Type
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Selections
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Stake
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Odds
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Payout
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.bets.map((bet) => (
+                <BetRow key={bet._id} bet={bet} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* A more elegant "empty" state */}
       {!loading && data?.bets.length === 0 && (
         <div className="text-center text-gray-500 mt-10 py-16 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           <FaInbox className="mx-auto text-4xl text-gray-400 mb-4" />

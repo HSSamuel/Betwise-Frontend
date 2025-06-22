@@ -1,5 +1,3 @@
-// In: Bet/Frontend/src/components/Layout/Sidebar.jsx
-
 import React from "react";
 import { NavLink, Link } from "react-router-dom";
 import {
@@ -11,6 +9,57 @@ import {
   FaHome,
   FaPaperPlane,
 } from "react-icons/fa";
+
+// Define all navigation links in a single array for maintainability
+const navLinks = [
+  {
+    path: "/admin",
+    label: "Dashboard",
+    icon: FaTachometerAlt,
+    end: true,
+    color: "text-blue-400",
+  },
+  {
+    path: "/admin/users",
+    label: "Users",
+    icon: FaUsers,
+    color: "text-sky-400",
+  },
+  {
+    path: "/admin/games",
+    label: "Games",
+    icon: FaGamepad,
+    color: "text-pink-400",
+  },
+  {
+    path: "/admin/withdrawals",
+    label: "Withdrawals",
+    icon: FaMoneyBillWave,
+    color: "text-green-400",
+  },
+  {
+    path: "/admin/risk",
+    label: "Risk Management",
+    icon: FaShieldAlt,
+    color: "text-red-400",
+  },
+  {
+    path: "/admin/aviator",
+    label: "Aviator Monitor",
+    icon: FaPaperPlane,
+    color: "text-indigo-400",
+  },
+  // Special item to create the divider
+  { type: "divider" },
+  // "isLink: true" tells our code to use a standard <Link> instead of a <NavLink>
+  {
+    path: "/",
+    label: "Back to Site",
+    icon: FaHome,
+    isLink: true,
+    color: "text-gray-400",
+  },
+];
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const linkClass =
@@ -45,105 +94,65 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             className="flex items-center space-x-2 text-white"
             onClick={handleLinkClick}
           >
-            {/* The icon in the header was FaBolt, which is not imported. I've changed it to FaPaperPlane which is used elsewhere */}
             <FaPaperPlane className="w-6 h-6 text-green-400" />
             <span className="text-xl font-bold tracking-wider">BetWise</span>
           </Link>
         </div>
 
-        {/* FIX: Use flexbox to structure the sidebar content vertically */}
-        <div className="flex flex-col justify-between h-full px-3 pb-4 overflow-y-auto">
-          {/* Main Admin Links */}
+        {/* --- UNIFIED MENU --- */}
+        {/* This single block now renders all links for both mobile and desktop */}
+        <div className="px-3 pb-4 overflow-y-auto">
           <ul className="space-y-2 font-medium">
-            <li>
-              <NavLink
-                to="/admin"
-                end
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaTachometerAlt className="w-5 h-5 text-blue-400" />
-                <span className="ms-3">Dashboard</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/users"
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaUsers className="w-5 h-5 text-sky-400" />
-                <span className="flex-1 ms-3">Users</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/games"
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaGamepad className="w-5 h-5 text-pink-400" />
-                <span className="flex-1 ms-3">Games</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/withdrawals"
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaMoneyBillWave className="w-5 h-5 text-green-400" />
-                <span className="flex-1 ms-3">Withdrawals</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/risk"
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaShieldAlt className="w-5 h-5 text-red-400" />
-                <span className="flex-1 ms-3">Risk Management</span>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/admin/aviator"
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeLinkClass : ""}`
-                }
-                onClick={handleLinkClick}
-              >
-                {/* FIX: Added text color to the icon */}
-                <FaPaperPlane className="w-5 h-5 text-indigo-400" />
-                <span className="flex-1 ms-3">Aviator Monitor</span>
-              </NavLink>
-            </li>
-          </ul>
+            {navLinks.map((item, index) => {
+              // Render a divider
+              if (item.type === "divider") {
+                return (
+                  <li
+                    key="divider"
+                    className="pt-4 mt-4 border-t border-gray-700"
+                  />
+                );
+              }
 
-          {/* "Back to Site" Link - flexbox will push this to the bottom */}
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-700">
-            <li>
-              <Link to="/" className={linkClass} onClick={handleLinkClick}>
-                <FaHome className="w-5 h-5 text-gray-400" />
-                <span className="ms-3">Back to Site</span>
-              </Link>
-            </li>
+              // Content for the link (icon and text)
+              const linkContent = (
+                <>
+                  <item.icon className={`w-5 h-5 ${item.color}`} />
+                  <span className="ms-3 flex-1">{item.label}</span>
+                </>
+              );
+
+              // Render a normal <Link> for "Back to Site"
+              if (item.isLink) {
+                return (
+                  <li key={index}>
+                    <Link
+                      to={item.path}
+                      className={linkClass}
+                      onClick={handleLinkClick}
+                    >
+                      {linkContent}
+                    </Link>
+                  </li>
+                );
+              }
+
+              // Render a <NavLink> for all other items
+              return (
+                <li key={index}>
+                  <NavLink
+                    to={item.path}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `${linkClass} ${isActive ? activeLinkClass : ""}`
+                    }
+                    onClick={handleLinkClick}
+                  >
+                    {linkContent}
+                  </NavLink>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </aside>

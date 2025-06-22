@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useApi } from "../../hooks/useApi";
 import {
   getPlatformStats,
   getFinancialDashboard,
-  manualGameSync, // Import the new service function
+  manualGameSync,
 } from "../../services/adminService";
 import Spinner from "../../components/ui/Spinner";
 import Card from "../../components/ui/Card";
@@ -17,6 +17,7 @@ import {
   FaDollarSign,
   FaPiggyBank,
   FaSync,
+  FaChevronDown,
 } from "react-icons/fa";
 import { formatCurrency } from "../../utils/helpers";
 
@@ -45,24 +46,61 @@ const AdminDashboard = () => {
     loading: financialsLoading,
     request: fetchFinancials,
   } = useApi(getFinancialDashboard);
+  // Pass an option to the useApi hook to prevent it from showing its own error toast,
+  // as toast.promise will be handling it.
+  const { loading: syncLoading, request: runSync } = useApi(manualGameSync, {
+    showToastOnError: false,
+  });
 
-  // FIX: Add the missing useApi hook for the manual sync functionality.
-  const { loading: syncLoading, request: runSync } = useApi(manualGameSync);
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     fetchStats();
     fetchFinancials();
   }, [fetchStats, fetchFinancials]);
 
-  const handleSync = async () => {
-    toast.loading("Starting game synchronization...");
-    const result = await runSync();
-    toast.dismiss(); // Dismiss the loading toast
-    if (result) {
-      toast.success(result.msg || "Game synchronization completed!");
-      // Optionally, refetch platform stats to see updated game counts
-      fetchStats();
-    }
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // --- REFACTORED: The handleSync function now uses toast.promise ---
+  const handleSync = (source) => {
+    setDropdownOpen(false); // Close dropdown on action
+
+    // The promise is the API call itself
+    const syncPromise = runSync({ source });
+
+    toast.promise(
+      syncPromise,
+      {
+        loading: `Syncing games from ${source}...`,
+        success: (data) => {
+          fetchStats(); // Refetch stats on success
+          return data?.msg || `Successfully synced from ${source}!`;
+        },
+        error: (err) => `Error: ${err.toString()}`,
+      },
+      {
+        style: {
+          minWidth: "250px",
+        },
+        success: {
+          duration: 4000,
+          icon: "✅",
+        },
+        error: {
+          duration: 5000,
+          icon: "❌",
+        },
+      }
+    );
   };
 
   if (statsLoading || financialsLoading) {
@@ -133,17 +171,56 @@ const AdminDashboard = () => {
           <div>
             <h3 className="font-bold">Manual Game Sync</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Fetch the latest upcoming games from the external sports API.
+              Fetch the latest upcoming games from an external sports API.
             </p>
           </div>
-          <Button
-            onClick={handleSync}
-            loading={syncLoading}
-            disabled={syncLoading}
+
+          <div
+            ref={dropdownRef}
+            className="relative inline-flex rounded-md shadow-sm"
           >
-            <FaSync className={syncLoading ? "animate-spin mr-2" : "mr-2"} />
-            Sync Now
-          </Button>
+            <Button
+              onClick={() => handleSync("apifootball")}
+              loading={syncLoading}
+              disabled={syncLoading}
+              className="!rounded-r-none"
+            >
+              <FaSync className={syncLoading ? "animate-spin mr-2" : "mr-2"} />
+              Sync from API-Football
+            </Button>
+            <button
+              type="button"
+              onClick={() => setDropdownOpen(!isDropdownOpen)}
+              disabled={syncLoading}
+              className="relative inline-flex items-center px-2 py-2 bg-green-700 text-white rounded-r-md hover:bg-green-800 focus:z-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400"
+              aria-haspopup="true"
+              aria-expanded={isDropdownOpen}
+            >
+              <FaChevronDown className="h-5 w-5" />
+            </button>
+
+            {isDropdownOpen && (
+              <div
+                className="origin-top-right absolute right-0 mt-12 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                role="menu"
+                aria-orientation="vertical"
+              >
+                <div className="py-1" role="none">
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSync("thesportsdb");
+                    }}
+                    className="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+                    role="menuitem"
+                  >
+                    Sync from TheSportsDB
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
     </div>
