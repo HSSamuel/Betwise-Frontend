@@ -8,9 +8,11 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-import { FaBrain } from "react-icons/fa";
+// FIX: Import the icon for the new error display
+import { FaBrain, FaExclamationCircle } from "react-icons/fa";
+import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
-// ... (MatchCenter component remains the same)
 const MatchCenter = ({ game }) => {
   if (game.status === "live") {
     return (
@@ -40,8 +42,13 @@ const MatchCenter = ({ game }) => {
 const GameCard = ({ game }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const { data, loading, error, request: fetchAnalysis } = useApi(analyzeGame);
+  const { user } = useAuth();
 
   const handleAnalysisClick = () => {
+    if (!user) {
+      toast.error("Login or register to view AI analysis");
+      return;
+    }
     fetchAnalysis(game._id);
     setModalOpen(true);
   };
@@ -54,7 +61,26 @@ const GameCard = ({ game }) => {
         title={`AI Analysis: ${game.homeTeam} vs ${game.awayTeam}`}
       >
         {loading && <Spinner />}
-        {error && <p className="text-red-500">{error}</p>}
+
+        {/* FIX: Improved error display inside the modal */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FaExclamationCircle
+                  className="h-5 w-5 text-red-400"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700 dark:text-red-200">
+                  {error}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {data && (
           <p className="text-gray-600 dark:text-gray-300">{data.analysis}</p>
         )}
@@ -106,5 +132,4 @@ const GameCard = ({ game }) => {
   );
 };
 
-// FIX: Wrap the component in React.memo to prevent unnecessary re-renders.
 export default React.memo(GameCard);

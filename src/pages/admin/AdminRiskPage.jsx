@@ -214,7 +214,9 @@ const AdminRiskPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <h2 className="text-xl font-semibold mb-4">High-Exposure Games</h2>
+          <h2 className="text-xl font-semibold mb-4 text-center lg:text-left">
+            High-Exposure Games
+          </h2>
           <div className="space-y-3">
             {overview?.topExposedGames.length > 0 ? (
               overview.topExposedGames.map((item) => (
@@ -238,7 +240,7 @@ const AdminRiskPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-2 flex justify-end space-x-2 rounded-b-lg">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-3 flex flex-wrap justify-center md:justify-end gap-2 rounded-b-lg">
                     <Button
                       variant="outline"
                       size="sm"
@@ -281,7 +283,9 @@ const AdminRiskPage = () => {
           </div>
         </div>
         <div>
-          <h2 className="text-xl font-semibold mb-4">Risk Details</h2>
+          <h2 className="text-xl font-semibold mb-4 text-center lg:text-left">
+            Risk Details
+          </h2>
           {selectedGame ? (
             <RiskAnalysisDetails
               game={selectedGame}

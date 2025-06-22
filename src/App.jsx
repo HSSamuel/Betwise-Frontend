@@ -61,19 +61,34 @@ function AppContent() {
         newSocket.emit("joinUserRoom", user._id);
       });
 
-      // --- THIS IS THE FINAL FIX FOR THE FRONTEND ---
-      // The error handler now logs the full error object for better debugging.
+      // FIX: Updated error handler to be more selective with toasts.
       newSocket.on("connect_error", (err) => {
-        console.error("Socket Connection Error:", err); // Log the full error object
-        const errorCode = err.data?.code; // Access the custom error code
+        const errorCode = err.data?.code;
+        const errorMessage = err.message.toLowerCase();
+
+        // Always log the full error for debugging purposes
+        console.error("Socket Connection Error:", err);
+
         if (errorCode === "INVALID_TOKEN") {
+          // This is a critical auth error, so we must show a toast and log out
           toast.error("Your session is invalid. Please log in again.");
-          logout(); // Force logout if the token is definitively invalid
+          logout();
+        } else if (
+          // Check for common network error messages
+          errorMessage.includes("xhr poll error") ||
+          errorMessage.includes("websocket error") ||
+          errorMessage.includes("internet disconnected")
+        ) {
+          // This is a network transport error, likely due to a lost connection.
+          // We handle this silently without a toast, as Socket.IO will try to reconnect.
+          console.log(
+            "Socket connection failed due to a network transport issue. Will retry."
+          );
         } else {
-          toast.error("Could not connect to real-time service.");
+          // For other unexpected errors, we can still show a generic message.
+          toast.error("A real-time connection error occurred.");
         }
       });
-      // --- END OF FINAL FIX ---
 
       newSocket.connect();
     } else {

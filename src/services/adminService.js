@@ -61,8 +61,9 @@ export const getGameRiskSummary = async (gameId) => {
   return response.data;
 };
 
-export const manualGameSync = async () => {
-  const response = await api.post("/admin/games/sync");
+export const manualGameSync = async (data) => {
+  // The 'data' object will contain the source, e.g., { source: 'thesportsdb' }
+  const response = await api.post("/admin/games/sync", data);
   return response.data;
 };
 

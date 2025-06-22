@@ -1,4 +1,4 @@
-// In: Bet/Frontend/src/components/bets/BetSlip.jsx
+// In: Frontend/src/components/bets/BetSlip.jsx
 
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import { FaLightbulb, FaPlus } from "react-icons/fa";
 
+// This sub-component renders a single tip with an "Add to Slip" button.
 const HotTip = ({ tip, onAdd }) => {
   if (!tip) return null;
   const outcomes = [
@@ -22,15 +23,12 @@ const HotTip = ({ tip, onAdd }) => {
 
   return (
     <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-r-lg">
-      <div className="flex items-center mb-2">
-        <FaLightbulb className="text-yellow-400 mr-2" />
-        <h4 className="font-bold text-sm">AI Quick Tip</h4>
-      </div>
-      <p className="text-xs">
+      <p className="text-xs font-bold">
         {tip.homeTeam} vs {tip.awayTeam}
       </p>
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        Suggested Bet: <span className="font-bold">{likelyOutcome.label}</span>
+        Suggested Bet:{" "}
+        <span className="font-semibold">{likelyOutcome.label}</span>
       </p>
       <Button
         className="w-full mt-2"
@@ -68,7 +66,7 @@ const BetSlip = () => {
   const { request: placeMultiRequest, loading: multiLoading } =
     useApi(placeMultiBet);
 
-  const [hotTip, setHotTip] = useState(null);
+  const [hotTips, setHotTips] = useState([]);
   const { loading: tipLoading, request: fetchHotTip } =
     useApi(getGameSuggestions);
 
@@ -81,13 +79,25 @@ const BetSlip = () => {
   }, [selections.length, betType]);
 
   const handleGetHotTip = async () => {
-    const result = await fetchHotTip();
-    // FIX: The `else` block that showed the redundant toast has been removed.
-    // If `result` is falsy, it's because the API call failed, and `useApi`
-    // has already displayed the correct error message.
-    if (result && result.suggestions.length > 0) {
-      setHotTip(result.suggestions[0]);
+    if (!user) {
+      toast.error("Please login to get AI-powered tips.");
+      return;
     }
+    const result = await fetchHotTip();
+    if (result && result.suggestions.length > 0) {
+      setHotTips(result.suggestions);
+    } else {
+      toast.error("Could not fetch new tips at this time.");
+      setHotTips([]);
+    }
+  };
+
+  const handleAddTipToSlip = (tipSelection) => {
+    addSelection(tipSelection);
+    // Remove the tip from the suggestion list once it's added
+    setHotTips((prevTips) =>
+      prevTips.filter((t) => t._id !== tipSelection.gameId)
+    );
   };
 
   const handleSuccess = (data) => {
@@ -137,7 +147,6 @@ const BetSlip = () => {
 
   const stakeAmount = parseFloat(stake) || 0;
   const isMultiBet = betType === "Multi" && selections.length > 1;
-
   const totalStake = isMultiBet ? stakeAmount : stakeAmount * selections.length;
   const potentialPayout = isMultiBet
     ? stakeAmount * totalOdds
@@ -157,9 +166,11 @@ const BetSlip = () => {
             loading={tipLoading}
             disabled={tipLoading}
           >
-            <FaLightbulb className="mr-2" /> Get AI Quick Tip
+            <FaLightbulb className="mr-2" /> Get AI Quick Tips
           </Button>
-          <HotTip tip={hotTip} onAdd={addSelection} />
+          {hotTips.map((tip) => (
+            <HotTip key={tip._id} tip={tip} onAdd={handleAddTipToSlip} />
+          ))}
         </div>
       ) : (
         <>
@@ -193,17 +204,31 @@ const BetSlip = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Bet Type
               </label>
-              <select
-                value={betType}
-                onChange={(e) => setBetType(e.target.value)}
-                className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
-                disabled={selections.length < 2}
-              >
-                <option value="Single">Singles</option>
-                <option value="Multi" disabled={selections.length < 2}>
-                  Multi (Accumulator)
-                </option>
-              </select>
+              <div className="flex w-full">
+                <button
+                  type="button"
+                  onClick={() => setBetType("Single")}
+                  className={`w-1/2 p-2 text-sm font-semibold border-y border-l rounded-l-md transition-colors ${
+                    betType === "Single"
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-200 dark:bg-gray-600"
+                  }`}
+                >
+                  Singles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBetType("Multi")}
+                  disabled={selections.length < 2}
+                  className={`w-1/2 p-2 text-sm font-semibold border-y border-r rounded-r-md transition-colors disabled:opacity-50 ${
+                    betType === "Multi"
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-200 dark:bg-gray-600"
+                  }`}
+                >
+                  Multi
+                </button>
+              </div>
             </div>
             <div className="mb-4">
               <label
