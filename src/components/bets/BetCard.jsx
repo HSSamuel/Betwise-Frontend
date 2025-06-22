@@ -1,3 +1,5 @@
+// In: Bet/Frontend/src/components/bets/BetCard.jsx
+
 import React from "react";
 import Card from "../ui/Card";
 import StatusBadge from "./StatusBadge";

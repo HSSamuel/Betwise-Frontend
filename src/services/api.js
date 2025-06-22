@@ -5,9 +5,7 @@ import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
 
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ||
-    "https://betwise-backend-w91p.onrender.com/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1",
 });
 
 let logoutUser;

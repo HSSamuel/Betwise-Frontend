@@ -1,5 +1,3 @@
-// In: Bet/Frontend/src/components/Layout/MainLayout.jsx
-
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -12,22 +10,20 @@ const MainLayout = () => {
   const { user } = useAuth();
   const [isChatOpen, setChatOpen] = useState(false);
 
-  // A single function to handle opening and closing the chat
   const handleToggleChat = () => {
     setChatOpen((prev) => !prev);
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    // FIX: Add theme-aware background and text colors to this main wrapper div.
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <Navbar />
       <main className="flex-grow container mx-auto px-4 py-8">
         <Outlet />
       </main>
 
-      {/* The AIChatBot component is now controlled by isChatOpen */}
       {user && <AIChatBot isOpen={isChatOpen} onClose={handleToggleChat} />}
 
-      {/* The Floating Action Button is now a toggle */}
       {user && (
         <button
           onClick={handleToggleChat}
@@ -38,7 +34,6 @@ const MainLayout = () => {
           }`}
           aria-label={isChatOpen ? "Close AI Chat" : "Open AI Chat"}
         >
-          {/* The icon changes based on the chat's state */}
           {isChatOpen ? <CloseIcon size={28} /> : <Sparkles size={28} />}
         </button>
       )}

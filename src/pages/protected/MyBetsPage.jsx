@@ -2,18 +2,16 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
-// FIX: Corrected the import from 'getBets' to 'getUserBets'
 import { getUserBets } from "../../services/betService";
 import Spinner from "../../components/ui/Spinner";
 import Pagination from "../../components/ui/Pagination";
 import { FaTicketAlt, FaInbox } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
-import BetCard from "../../components/bets/BetCard";
+import BetCard from "../../components/bets/BetCard"; // <-- IMPORT the new BetCard
 
 const MyBetsPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  // FIX: Passed the correctly named 'getUserBets' function to the useApi hook
   const { data, loading, error, request: fetchBets } = useApi(getUserBets);
   const socket = useSocket();
 
@@ -72,6 +70,7 @@ const MyBetsPage = () => {
         <p className="text-center p-4 text-red-500">{error}</p>
       )}
 
+      {/* This is the new card-based layout */}
       {!loading && data?.bets.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.bets.map((bet) => (
@@ -80,6 +79,7 @@ const MyBetsPage = () => {
         </div>
       )}
 
+      {/* A more elegant "empty" state */}
       {!loading && data?.bets.length === 0 && (
         <div className="text-center text-gray-500 mt-10 py-16 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           <FaInbox className="mx-auto text-4xl text-gray-400 mb-4" />

@@ -1,12 +1,4 @@
-// In: src/pages/public/HomePage.jsx
-
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
   getGames,
   getPersonalizedFeed,
@@ -15,12 +7,11 @@ import {
 import {
   getRecommendedGames,
   getGeneralSportsNews,
-} from "../../services/aiService"; // FIX: Import getGeneralSportsNews
+} from "../../services/aiService";
 import { useApi } from "../../hooks/useApi";
 import GameList from "../../components/games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
 import GameCardSkeleton from "../../components/games/GameCardSkeleton";
-import OddsDisplay from "../../components/games/OddsDisplay";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import AISearchBar from "../../components/ai/AISearchBar";
@@ -28,6 +19,7 @@ import AINewsSummary from "../../components/ai/AINewsSummary";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
 import Button from "../../components/ui/Button";
 import { formatDate } from "../../utils/formatDate";
+import OddsDisplay from "../../components/Games/OddsDisplay";
 import { FaRegSadTear, FaChartLine, FaTrophy } from "react-icons/fa";
 
 const HeroSection = ({ onBrowseClick }) => (
@@ -151,8 +143,6 @@ const HomePage = () => {
     loading: suggestionsLoading,
     request: fetchSuggestions,
   } = useApi(getGameSuggestions);
-
-  // FIX: Added the missing useApi hook for fetching news data
   const {
     data: newsData,
     loading: newsLoading,
@@ -164,33 +154,22 @@ const HomePage = () => {
     upcomingLoading ||
     liveLoading ||
     finishedLoading ||
+    newsLoading ||
     (user && (recsLoading || feedLoading || suggestionsLoading));
   const gamesSectionRef = useRef(null);
 
-  const fetchAllData = useCallback(() => {
+  useEffect(() => {
     fetchUpcoming({ status: "upcoming", limit: 20 });
     fetchLive({ status: "live" });
     fetchFinished({ status: "finished", limit: 10, order: "desc" });
-    fetchNews(); // FIX: Call the fetchNews function
+    fetchNews();
     if (user) {
       fetchRecs();
       fetchFeed();
       fetchSuggestions();
     }
-  }, [
-    user,
-    fetchUpcoming,
-    fetchLive,
-    fetchFinished,
-    fetchRecs,
-    fetchFeed,
-    fetchSuggestions,
-    fetchNews, // FIX: Add fetchNews to dependency array
-  ]);
-
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (liveData?.games) {
@@ -222,14 +201,13 @@ const HomePage = () => {
     return games && games.length > 0 ? games[0] : null;
   }, [recommendationsData, upcomingData]);
 
-  const handleSearchComplete = (searchResultGames) => {
-    setSearchResults(searchResultGames);
+  const handleSearchComplete = (games) => {
+    setSearchResults(games);
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleClearSearch = () => {
     setSearchResults(null);
-    if (user) setActiveTab("recommend");
   };
 
   const renderTabContent = (data, loading, emptyState) => {

@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 
-const ThemeContext = createContext();
-
-export const useTheme = () => useContext(ThemeContext);
+// FIX: Export the context directly so the hook can import it.
+export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
@@ -17,13 +16,8 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     const root = window.document.documentElement;
-
-    // Clean up old theme classes
     root.classList.remove("light", "dark");
-
-    // Add the new theme class
     root.classList.add(theme);
-
     localStorage.setItem("theme", theme);
   }, [theme]);
 

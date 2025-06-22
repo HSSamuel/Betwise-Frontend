@@ -1,5 +1,6 @@
 import React from "react";
-import { useTheme } from "../../contexts/ThemeContext";
+// FIX: Update the import path to the new hook file.
+import { useTheme } from "../../hooks/useTheme";
 import { FaSun, FaMoon } from "react-icons/fa";
 
 const ThemeToggle = () => {

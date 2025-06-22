@@ -34,7 +34,6 @@ const MatchCenter = ({ game }) => {
       </div>
     );
   }
-  // Default for 'upcoming', 'postponed', etc.
   return <div className="text-2xl font-bold text-gray-400 mx-4">VS</div>;
 };
 
