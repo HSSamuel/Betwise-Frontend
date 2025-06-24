@@ -9,9 +9,10 @@ import {
 } from "../../services/betService";
 import { getGameSuggestions } from "../../services/gameService";
 import { useAuth } from "../../contexts/AuthContext";
+import { useWallet } from "../../contexts/WalletContext"; // --- Implementation: Import useWallet ---
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
-import Input from "../ui/Input"; // Ensure Input is imported
+import Input from "../ui/Input";
 import { FaLightbulb, FaPlus, FaShareAlt } from "react-icons/fa";
 
 const HotTip = ({ tip, onAdd }) => {
@@ -62,7 +63,11 @@ const BetSlip = () => {
   const [stake, setStake] = useState("");
   const [betType, setBetType] = useState("Single");
   const { user, fetchWalletBalance } = useAuth();
+  const { balance } = useWallet();
   const navigate = useNavigate();
+
+  // --- Implementation: Add state for the 'Keep Selections' toggle ---
+  const [keepSelections, setKeepSelections] = useState(false);
 
   const { request: placeSinglesRequest, loading: singleLoading } =
     useApi(placeMultipleSingles);
@@ -71,18 +76,14 @@ const BetSlip = () => {
   const { loading: sharing, request: shareSlip } = useApi(createShareableSlip);
   const { loading: tipLoading, request: fetchHotTip } =
     useApi(getGameSuggestions);
-
   const [hotTips, setHotTips] = useState([]);
   const isLoading = singleLoading || multiLoading;
 
-  // --- Smart Defaulting Logic ---
   useEffect(() => {
-    if (selections.length >= 2) {
-      setBetType("Multi");
-    } else {
+    if (betType === "Multi" && selections.length < 2) {
       setBetType("Single");
     }
-  }, [selections.length]);
+  }, [selections.length, betType]);
 
   const handleShareBet = async () => {
     if (selections.length === 0) {
@@ -126,7 +127,10 @@ const BetSlip = () => {
 
   const handleSuccess = (data) => {
     toast.success(data.msg || "Bets placed successfully!");
-    clearSelections();
+    // --- Correction: Only clear selections if the toggle is off ---
+    if (!keepSelections) {
+      clearSelections();
+    }
     setStake("");
     if (fetchWalletBalance) fetchWalletBalance();
   };
@@ -167,6 +171,18 @@ const BetSlip = () => {
   };
 
   const isMultiBet = betType === "Multi" && selections.length > 1;
+
+  // --- Implementation: New handler for the Quick-Stake buttons ---
+  const handleQuickStake = (amount) => {
+    const currentStake = parseFloat(stake) || 0;
+    if (amount === "Max") {
+      const maxStake = isMultiBet ? balance : balance / selections.length;
+      setStake(maxStake > 0 ? maxStake.toFixed(2) : "0");
+    } else {
+      setStake((currentStake + amount).toString());
+    }
+  };
+
   const stakeAmount = parseFloat(stake) || 0;
   const totalStake = isMultiBet ? stakeAmount : stakeAmount * selections.length;
   const potentialPayout = isMultiBet
@@ -178,6 +194,7 @@ const BetSlip = () => {
       <h3 className="text-lg font-bold border-b pb-2 mb-4 dark:border-gray-700">
         Bet Slip
       </h3>
+
       {selections.length === 0 ? (
         <div className="text-center text-gray-500 py-4">
           <p className="mb-4">Click odds on a match to add a bet.</p>
@@ -250,6 +267,7 @@ const BetSlip = () => {
                 </button>
               </div>
             </div>
+
             <div className="mb-4">
               <label
                 htmlFor="stake"
@@ -266,6 +284,39 @@ const BetSlip = () => {
                 placeholder="0.00"
               />
             </div>
+
+            {/* --- Implementation: Quick-Stake Buttons --- */}
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleQuickStake(5)}
+              >
+                +$5
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleQuickStake(10)}
+              >
+                +$10
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleQuickStake(50)}
+              >
+                +$50
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickStake("Max")}
+              >
+                Max
+              </Button>
+            </div>
+
             <div className="text-right font-bold text-lg">
               {isMultiBet ? (
                 <p className="text-sm">
@@ -275,7 +326,9 @@ const BetSlip = () => {
               ) : (
                 <p className="text-sm">
                   Total Stake:{" "}
-                  <span className="text-red-600">${totalStake.toFixed(2)}</span>
+                  <span className="text-red-600">{`$${totalStake.toFixed(
+                    2
+                  )}`}</span>
                 </p>
               )}
               <p>
@@ -285,6 +338,20 @@ const BetSlip = () => {
                 </span>
               </p>
             </div>
+
+            {/* --- Implementation: Keep Selections Toggle --- */}
+            <div className="mt-4">
+              <label className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={keepSelections}
+                  onChange={(e) => setKeepSelections(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-green-600 rounded"
+                />
+                <span className="ml-2">Keep selections after placing bet</span>
+              </label>
+            </div>
+
             <Button
               onClick={handlePlaceBet}
               disabled={isLoading}
