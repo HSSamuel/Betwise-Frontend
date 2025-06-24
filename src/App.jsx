@@ -10,17 +10,15 @@ import { jwtDecode } from "jwt-decode";
 function AppContent() {
   const { user, logout } = useAuth();
   const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const socketInstance = useRef(null);
 
   useEffect(() => {
-    const cleanup = () => {
-      if (socketInstance.current) {
-        console.log("Cleaning up existing socket connection...");
-        socketInstance.current.disconnect();
-        socketInstance.current = null;
-        setSocket(null);
-      }
-    };
+    // Disconnect and clean up any existing socket when the user changes
+    if (socketInstance.current) {
+      console.log("Cleaning up existing socket connection...");
+      socketInstance.current.disconnect();
+    }
 
     if (user) {
       console.log("User detected, attempting to establish socket connection.");
@@ -33,73 +31,91 @@ function AppContent() {
         return;
       }
 
-      try {
-        const decodedToken = jwtDecode(token);
-        if (decodedToken.exp * 1000 < Date.now()) {
-          console.error("Socket Error: Access token has expired.");
-          toast.error("Your session has expired. Please log in again.");
-          logout();
-          return;
-        }
-      } catch (error) {
-        console.error("Socket Error: Invalid token. Logging out.", error);
-        logout();
-        return;
-      }
+      // --- Start of Correction ---
+      // All socket logic is now handled within this block.
 
-      cleanup();
-
-      console.log("Creating new socket instance...");
       const newSocket = createSocket(token);
       socketInstance.current = newSocket;
       setSocket(newSocket);
 
+      // Setup all event listeners on the new socket instance
       newSocket.on("connect", () => {
         console.log(
           `✅ Socket connected successfully with ID: ${newSocket.id}`
         );
+        setIsConnected(true);
         newSocket.emit("joinUserRoom", user._id);
       });
 
-      // FIX: Updated error handler to be more selective with toasts.
+      newSocket.on("disconnect", () => {
+        console.log("❌ Socket disconnected.");
+        setIsConnected(false);
+      });
+
       newSocket.on("connect_error", (err) => {
+        setIsConnected(false);
         const errorCode = err.data?.code;
         const errorMessage = err.message.toLowerCase();
-
-        // Always log the full error for debugging purposes
         console.error("Socket Connection Error:", err);
 
         if (errorCode === "INVALID_TOKEN") {
-          // This is a critical auth error, so we must show a toast and log out
           toast.error("Your session is invalid. Please log in again.");
           logout();
         } else if (
-          // Check for common network error messages
           errorMessage.includes("xhr poll error") ||
           errorMessage.includes("websocket error") ||
           errorMessage.includes("internet disconnected")
         ) {
-          // This is a network transport error, likely due to a lost connection.
-          // We handle this silently without a toast, as Socket.IO will try to reconnect.
           console.log(
             "Socket connection failed due to a network transport issue. Will retry."
           );
         } else {
-          // For other unexpected errors, we can still show a generic message.
           toast.error("A real-time connection error occurred.");
         }
       });
 
-      newSocket.connect();
-    } else {
-      cleanup();
-    }
+      // Listen for custom real-time events
+      newSocket.on("bet_settled", (data) => {
+        if (data.status === "won") {
+          toast.success(`${data.message} You won $${data.payout.toFixed(2)}!`);
+        } else {
+          toast.info(data.message);
+        }
+      });
 
-    return cleanup;
+      newSocket.on("withdrawal_processed", (data) => {
+        if (data.status === "success") {
+          toast.success(data.message);
+        } else {
+          toast.error(data.message);
+        }
+      });
+
+      newSocket.connect();
+
+      // The cleanup function for this useEffect instance
+      return () => {
+        console.log("Running cleanup for the user socket effect.");
+        newSocket.off("connect");
+        newSocket.off("disconnect");
+        newSocket.off("connect_error");
+        newSocket.off("bet_settled");
+        newSocket.off("withdrawal_processed");
+        newSocket.disconnect();
+      };
+      // --- End of Correction ---
+    } else {
+      setIsConnected(false);
+      if (socketInstance.current) {
+        socketInstance.current.disconnect();
+        socketInstance.current = null;
+        setSocket(null);
+      }
+    }
   }, [user, logout]);
 
   return (
-    <SocketProvider socket={socket}>
+    <SocketProvider value={{ socket, isConnected }}>
       <AppRoutes />
       <Toaster position="top-right" reverseOrder={false} />
     </SocketProvider>

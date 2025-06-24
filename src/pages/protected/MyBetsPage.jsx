@@ -1,33 +1,60 @@
 import React, { useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import { useApi } from "../../hooks/useApi";
-import { getUserBets } from "../../services/betService";
+import { getUserBets, cashOutBet } from "../../services/betService";
 import Spinner from "../../components/ui/Spinner";
 import Pagination from "../../components/ui/Pagination";
-import { FaTicketAlt, FaInbox } from "react-icons/fa";
+import { FaTicketAlt, FaInbox, FaFilter } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
-import BetRow from "../../components/bets/BetRow"; // We'll use the row component
+import BetRow from "../../components/bets/BetRow";
+import Input from "../../components/ui/Input"; // Ensure Input is imported
 
 const MyBetsPage = () => {
-  const [statusFilter, setStatusFilter] = useState("");
+  // --- Implementation: State is now managed by a single 'filters' object ---
+  const [filters, setFilters] = useState({
+    status: "",
+    sortBy: "createdAt",
+    order: "desc",
+    startDate: "",
+    endDate: "",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const { data, loading, error, request: fetchBets } = useApi(getUserBets);
-  const socket = useSocket();
+  const { socket } = useSocket();
+  const { loading: cashOutLoading, request: performCashOut } =
+    useApi(cashOutBet);
 
   const fetchLatestBets = useCallback(() => {
-    const params = { page: currentPage, limit: 12 }; // Increased limit for table view
-    if (statusFilter) {
-      params.status = statusFilter;
-    }
+    // Pass the entire filters object to the API call
+    const params = { page: currentPage, limit: 12, ...filters };
+    // Clean up empty filter values before sending
+    Object.keys(params).forEach((key) => {
+      if (!params[key]) delete params[key];
+    });
     fetchBets(params);
-  }, [currentPage, statusFilter, fetchBets]);
+  }, [currentPage, filters, fetchBets]);
 
   useEffect(() => {
     fetchLatestBets();
   }, [fetchLatestBets]);
 
+  // Reset to page 1 only when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [filters]);
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCashOut = async (betId) => {
+    const result = await performCashOut(betId);
+    if (result) {
+      toast.success(result.msg || "Bet cashed out successfully!");
+      fetchLatestBets();
+    }
+  };
 
   useEffect(() => {
     if (!socket) return;
@@ -46,17 +73,83 @@ const MyBetsPage = () => {
         <h1 className="text-3xl font-bold flex items-center">
           <FaTicketAlt className="mr-3 text-green-500" /> My Bets
         </h1>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-green-500 focus:border-green-500"
-        >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="won">Won</option>
-          <option value="lost">Lost</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+      </div>
+
+      {/* --- Implementation: New Filter Bar --- */}
+      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6 flex flex-wrap items-end gap-4">
+        <div>
+          <label
+            htmlFor="status"
+            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            value={filters.status}
+            onChange={handleFilterChange}
+            className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          >
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label
+            htmlFor="sortBy"
+            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            Sort By
+          </label>
+          <select
+            id="sortBy"
+            name="sortBy"
+            value={filters.sortBy}
+            onChange={handleFilterChange}
+            className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          >
+            <option value="createdAt">Date</option>
+            <option value="stake">Stake</option>
+            <option value="payout">Payout</option>
+            <option value="totalOdds">Odds</option>
+          </select>
+        </div>
+        <div>
+          <label
+            htmlFor="startDate"
+            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            Start Date
+          </label>
+          <Input
+            id="startDate"
+            name="startDate"
+            type="date"
+            value={filters.startDate}
+            onChange={handleFilterChange}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="endDate"
+            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            End Date
+          </label>
+          <Input
+            id="endDate"
+            name="endDate"
+            type="date"
+            value={filters.endDate}
+            onChange={handleFilterChange}
+            className="mt-1"
+          />
+        </div>
       </div>
 
       {loading && (
@@ -68,7 +161,6 @@ const MyBetsPage = () => {
         <p className="text-center p-4 text-red-500">{error}</p>
       )}
 
-      {/* NEW: Table Layout */}
       {!loading && data?.bets.length > 0 && (
         <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
@@ -95,11 +187,19 @@ const MyBetsPage = () => {
                 <th scope="col" className="px-6 py-3">
                   Date
                 </th>
+                <th scope="col" className="px-6 py-3">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.bets.map((bet) => (
-                <BetRow key={bet._id} bet={bet} />
+                <BetRow
+                  key={bet._id}
+                  bet={bet}
+                  onCashOut={handleCashOut}
+                  isCashOutLoading={cashOutLoading}
+                />
               ))}
             </tbody>
           </table>

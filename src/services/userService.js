@@ -38,3 +38,15 @@ export const uploadProfilePicture = async (formData) => {
   });
   return response.data;
 };
+
+// --- Function to fetch user's betting statistics ---
+export const getUserStats = async () => {
+  const response = await api.get("/users/stats");
+  return response.data;
+};
+
+// --- Function to fetch historical data for charts ---
+export const getUserStatsHistory = async () => {
+  const response = await api.get("/users/stats/history");
+  return response.data;
+};

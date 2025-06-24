@@ -35,19 +35,18 @@ const StatusBadge = ({ status }) => {
 const AdminGameManagementPage = () => {
   const { data, loading, error, request: fetchGames } = useApi(getGames);
   const [games, setGames] = useState([]);
-  const socket = useSocket();
+  const { socket } = useSocket(); // --- Correction: Destructure the socket object ---
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
 
   const refetchGames = () => {
-    // This now correctly fetches 'upcoming' games by default
     fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
   };
 
   useEffect(() => {
     refetchGames();
-  }, []); // Depend on refetchGames after defining it with useCallback if needed, or just on mount
+  }, []);
 
   useEffect(() => {
     if (data?.games) {
@@ -55,7 +54,6 @@ const AdminGameManagementPage = () => {
     }
   }, [data]);
 
-  // This useEffect handles real-time updates for new games or cancellations
   useEffect(() => {
     if (!socket) return;
 
@@ -64,26 +62,24 @@ const AdminGameManagementPage = () => {
         const index = prevGames.findIndex((g) => g._id === updatedGame._id);
 
         if (index === -1 && updatedGame.status === "upcoming") {
-          // A new game was created, add it to the list
           return [updatedGame, ...prevGames];
         }
 
         const newGames = [...prevGames];
-        // If a game is cancelled, it should be removed from the actionable list
         if (
           updatedGame.status === "cancelled" ||
           updatedGame.status === "finished"
         ) {
           return newGames.filter((g) => g._id !== updatedGame._id);
         } else if (index > -1) {
-          newGames[index] = updatedGame; // Update existing game
+          newGames[index] = updatedGame;
           return newGames;
         }
-        return prevGames; // No change
+        return prevGames;
       });
     };
 
-    socket.on("gameUpdate", handleGameUpdate);
+    socket.on("gameUpdate", handleGameUpdate); // This line will now work correctly
 
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
@@ -99,7 +95,7 @@ const AdminGameManagementPage = () => {
       try {
         await cancelGame(gameId);
         toast.success("Game cancelled successfully.");
-        refetchGames(); // Refetch the list to see the change immediately
+        refetchGames();
       } catch (err) {
         toast.error(err.response?.data?.msg || "Failed to cancel game.");
       }
@@ -147,7 +143,6 @@ const AdminGameManagementPage = () => {
                 <StatusBadge status={game.status} />
               </div>
 
-              {/* NEW: Added logos to the team display */}
               <div className="flex items-center my-2">
                 <img
                   src={game.homeTeamLogo || "/default-logo.png"}
@@ -171,7 +166,6 @@ const AdminGameManagementPage = () => {
             </div>
 
             <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
-              {/* Actions are only available for upcoming games */}
               {game.status === "upcoming" && (
                 <>
                   <Button

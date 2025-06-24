@@ -18,6 +18,7 @@ import {
   FaShieldAlt,
   FaCog,
 } from "react-icons/fa";
+import BettingStats from "../../components/profile/BettingStats"; // --- Correction: Removed the duplicate import ---
 
 const ProfilePage = () => {
   const {
@@ -25,6 +26,7 @@ const ProfilePage = () => {
     loading,
     error,
     request: fetchProfile,
+    setData: setProfile,
   } = useApi(getProfile);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const fileInputRef = useRef(null);
@@ -53,12 +55,17 @@ const ProfilePage = () => {
     const result = await submitUpload(formData);
     if (result) {
       toast.success("Profile picture updated!");
-      fetchProfile();
+      setProfile((prevProfile) => ({
+        ...prevProfile,
+        profilePicture: result.profilePictureUrl,
+      }));
     }
   };
 
-  const handleProfileUpdate = () => {
-    fetchProfile();
+  const handleProfileUpdate = (updatedUser) => {
+    if (updatedUser) {
+      setProfile(updatedUser);
+    }
   };
 
   const handleGetFeedback = async () => {
@@ -80,10 +87,8 @@ const ProfilePage = () => {
     return <p className="text-red-500 text-center">{error}</p>;
   }
 
-  // --- FIX IS HERE: ADD AN EXPLICIT CHECK FOR THE PROFILE OBJECT ---
-  // This prevents the component from trying to render with null data.
   if (!profile) {
-    return null; // or return a loading spinner
+    return null;
   }
 
   return (
@@ -110,7 +115,8 @@ const ProfilePage = () => {
       </Modal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-8">
+          {" "}
           <Card className="!p-0">
             <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-8 rounded-t-lg">
               <div className="flex items-center space-x-6">
@@ -172,6 +178,9 @@ const ProfilePage = () => {
                 </Button>
               </div>
             </div>
+          </Card>
+          <Card>
+            <BettingStats />
           </Card>
         </div>
 

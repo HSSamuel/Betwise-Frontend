@@ -1,5 +1,3 @@
-// In: Bet/Frontend/src/components/Games/GameCard.jsx
-
 import React, { useState } from "react";
 import { formatDate } from "../../utils/formatDate";
 import OddsDisplay from "./OddsDisplay";
@@ -8,20 +6,27 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-// FIX: Import the icon for the new error display
-import { FaBrain, FaExclamationCircle } from "react-icons/fa";
+import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa"; // Correction: Added FaWifi
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 
-const MatchCenter = ({ game }) => {
+// Correction: The MatchCenter component now properly uses the `isConnected` prop
+const MatchCenter = ({ game, isConnected }) => {
   if (game.status === "live") {
     return (
       <div className="text-center">
         <div className="text-3xl font-bold text-green-500">
           {game.scores.home} - {game.scores.away}
         </div>
-        <div className="text-xs text-red-500 animate-pulse font-semibold">
-          {game.elapsedTime}' LIVE
+        <div className="text-xs text-red-500 animate-pulse font-semibold flex items-center justify-center space-x-2">
+          <span>{game.elapsedTime}' LIVE</span>
+          {/* Add a warning icon if not connected */}
+          {!isConnected && (
+            <FaWifi
+              className="text-yellow-500"
+              title="Connection lost. Scores may be outdated."
+            />
+          )}
         </div>
       </div>
     );
@@ -39,7 +44,8 @@ const MatchCenter = ({ game }) => {
   return <div className="text-2xl font-bold text-gray-400 mx-4">VS</div>;
 };
 
-const GameCard = ({ game }) => {
+// Correction: The GameCard component now accepts `isConnected` and passes it down
+const GameCard = ({ game, isConnected }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const { data, loading, error, request: fetchAnalysis } = useApi(analyzeGame);
   const { user } = useAuth();
@@ -61,8 +67,6 @@ const GameCard = ({ game }) => {
         title={`AI Analysis: ${game.homeTeam} vs ${game.awayTeam}`}
       >
         {loading && <Spinner />}
-
-        {/* FIX: Improved error display inside the modal */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
             <div className="flex">
@@ -80,7 +84,6 @@ const GameCard = ({ game }) => {
             </div>
           </div>
         )}
-
         {data && (
           <p className="text-gray-600 dark:text-gray-300">{data.analysis}</p>
         )}
@@ -104,7 +107,7 @@ const GameCard = ({ game }) => {
             />
             <span className="font-bold text-lg">{game.homeTeam}</span>
           </div>
-          <MatchCenter game={game} />
+          <MatchCenter game={game} isConnected={isConnected} />
           <div className="flex-1 flex flex-col items-center">
             <img
               src={game.awayTeamLogo || "/default-logo.png"}

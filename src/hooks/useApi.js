@@ -1,12 +1,10 @@
-// In: src/hooks/useApi.js
-
 import { useState, useCallback } from "react";
 import toast from "react-hot-toast";
 
 /**
  * A custom hook to handle API calls, loading, and error states.
  * @param {Function} apiFunc - The API function to call from your services.
- * @returns {object} { data, error, loading, request }
+ * @returns {object} { data, error, loading, request, setData }
  */
 export const useApi = (apiFunc) => {
   const [data, setData] = useState(null);
@@ -14,9 +12,7 @@ export const useApi = (apiFunc) => {
   const [loading, setLoading] = useState(false);
 
   const request = useCallback(
-    // 1. Accept an optional 'options' object as the second argument.
     async (requestData, options = {}) => {
-      // 2. Set default options.
       const { showToastOnError = true } = options;
 
       setLoading(true);
@@ -33,7 +29,6 @@ export const useApi = (apiFunc) => {
           "An unexpected error occurred.";
         setError(errorMessage);
 
-        // 3. Only show the toast if the option is true.
         if (showToastOnError) {
           toast.error(errorMessage);
         }
@@ -44,5 +39,6 @@ export const useApi = (apiFunc) => {
     [apiFunc]
   );
 
-  return { data, error, loading, request };
+  // --- Implementation: Expose setData so components can perform optimistic updates ---
+  return { data, error, loading, request, setData };
 };

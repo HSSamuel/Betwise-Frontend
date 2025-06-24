@@ -1,17 +1,19 @@
-// In: Frontend/src/components/bets/BetSlip.jsx
-
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useBetSlip } from "../../contexts/BetSlipContext";
 import { useApi } from "../../hooks/useApi";
-import { placeMultiBet, placeMultipleSingles } from "../../services/betService";
+import {
+  placeMultiBet,
+  placeMultipleSingles,
+  createShareableSlip,
+} from "../../services/betService";
 import { getGameSuggestions } from "../../services/gameService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
-import { FaLightbulb, FaPlus } from "react-icons/fa";
+import Input from "../ui/Input"; // Ensure Input is imported
+import { FaLightbulb, FaPlus, FaShareAlt } from "react-icons/fa";
 
-// This sub-component renders a single tip with an "Add to Slip" button.
 const HotTip = ({ tip, onAdd }) => {
   if (!tip) return null;
   const outcomes = [
@@ -33,6 +35,7 @@ const HotTip = ({ tip, onAdd }) => {
       <Button
         className="w-full mt-2"
         variant="outline"
+        size="sm"
         onClick={() =>
           onAdd({
             gameId: tip._id,
@@ -65,18 +68,40 @@ const BetSlip = () => {
     useApi(placeMultipleSingles);
   const { request: placeMultiRequest, loading: multiLoading } =
     useApi(placeMultiBet);
-
-  const [hotTips, setHotTips] = useState([]);
+  const { loading: sharing, request: shareSlip } = useApi(createShareableSlip);
   const { loading: tipLoading, request: fetchHotTip } =
     useApi(getGameSuggestions);
 
+  const [hotTips, setHotTips] = useState([]);
   const isLoading = singleLoading || multiLoading;
 
+  // --- Smart Defaulting Logic ---
   useEffect(() => {
-    if (selections.length < 2 && betType === "Multi") {
+    if (selections.length >= 2) {
+      setBetType("Multi");
+    } else {
       setBetType("Single");
     }
-  }, [selections.length, betType]);
+  }, [selections.length]);
+
+  const handleShareBet = async () => {
+    if (selections.length === 0) {
+      toast.error("Add selections to your slip before sharing.");
+      return;
+    }
+    const slipData = {
+      selections: selections.map((s) => ({
+        gameId: s.gameId,
+        outcome: s.outcome,
+      })),
+      betType: selections.length > 1 ? "multi" : "single",
+    };
+    const result = await shareSlip(slipData);
+    if (result?.shareUrl) {
+      navigator.clipboard.writeText(result.shareUrl);
+      toast.success("Share link copied to clipboard!");
+    }
+  };
 
   const handleGetHotTip = async () => {
     if (!user) {
@@ -84,7 +109,7 @@ const BetSlip = () => {
       return;
     }
     const result = await fetchHotTip();
-    if (result && result.suggestions.length > 0) {
+    if (result?.suggestions?.length > 0) {
       setHotTips(result.suggestions);
     } else {
       toast.error("Could not fetch new tips at this time.");
@@ -94,7 +119,6 @@ const BetSlip = () => {
 
   const handleAddTipToSlip = (tipSelection) => {
     addSelection(tipSelection);
-    // Remove the tip from the suggestion list once it's added
     setHotTips((prevTips) =>
       prevTips.filter((t) => t._id !== tipSelection.gameId)
     );
@@ -118,13 +142,10 @@ const BetSlip = () => {
       return;
     }
 
-    if (betType === "Multi") {
-      if (selections.length < 2) {
-        toast.error("A multi-bet requires at least 2 selections.");
-        return;
-      }
+    const stakeAmount = parseFloat(stake);
+    if (isMultiBet) {
       const betData = {
-        stake: parseFloat(stake),
+        stake: stakeAmount,
         selections: selections.map((s) => ({
           gameId: s.gameId,
           outcome: s.outcome,
@@ -134,7 +155,7 @@ const BetSlip = () => {
       if (result) handleSuccess(result);
     } else {
       const betData = {
-        stakePerBet: parseFloat(stake),
+        stakePerBet: stakeAmount,
         selections: selections.map((s) => ({
           gameId: s.gameId,
           outcome: s.outcome,
@@ -145,8 +166,8 @@ const BetSlip = () => {
     }
   };
 
-  const stakeAmount = parseFloat(stake) || 0;
   const isMultiBet = betType === "Multi" && selections.length > 1;
+  const stakeAmount = parseFloat(stake) || 0;
   const totalStake = isMultiBet ? stakeAmount : stakeAmount * selections.length;
   const potentialPayout = isMultiBet
     ? stakeAmount * totalOdds
@@ -157,7 +178,6 @@ const BetSlip = () => {
       <h3 className="text-lg font-bold border-b pb-2 mb-4 dark:border-gray-700">
         Bet Slip
       </h3>
-
       {selections.length === 0 ? (
         <div className="text-center text-gray-500 py-4">
           <p className="mb-4">Click odds on a match to add a bet.</p>
@@ -235,14 +255,14 @@ const BetSlip = () => {
                 htmlFor="stake"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                {isMultiBet ? "Stake ($)" : "Stake per Bet ($)"}
+                {isMultiBet ? "Total Stake ($)" : "Stake per Bet ($)"}
               </label>
-              <input
+              <Input
                 type="number"
                 id="stake"
                 value={stake}
                 onChange={(e) => setStake(e.target.value)}
-                className="w-full p-2 mt-1 border rounded-md dark:bg-gray-600 dark:border-gray-500"
+                className="w-full p-2 mt-1"
                 placeholder="0.00"
               />
             </div>
@@ -255,9 +275,7 @@ const BetSlip = () => {
               ) : (
                 <p className="text-sm">
                   Total Stake:{" "}
-                  <span className="text-red-600">{`$${totalStake.toFixed(
-                    2
-                  )}`}</span>
+                  <span className="text-red-600">${totalStake.toFixed(2)}</span>
                 </p>
               )}
               <p>
@@ -275,13 +293,23 @@ const BetSlip = () => {
             >
               {isLoading ? "Placing Bet..." : "Place Bet"}
             </Button>
-            <Button
-              onClick={clearSelections}
-              variant="outline"
-              className="w-full mt-2"
-            >
-              Clear Slip
-            </Button>
+            <div className="flex space-x-2 mt-2">
+              <Button
+                onClick={clearSelections}
+                variant="outline"
+                className="w-full"
+              >
+                Clear Slip
+              </Button>
+              <Button
+                onClick={handleShareBet}
+                variant="secondary"
+                className="w-full"
+                loading={sharing}
+              >
+                <FaShareAlt className="mr-2" /> Share
+              </Button>
+            </div>
           </div>
         </>
       )}

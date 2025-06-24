@@ -1,18 +1,14 @@
 import React from "react";
 import { formatDate } from "../../utils/formatDate";
 import { formatCurrency, capitalize } from "../../utils/helpers";
+import Button from "../ui/Button";
+import StatusBadge from "./StatusBadge";
 
-const BetRow = ({ bet }) => {
-  const isWin = bet.status === "won";
-  const isLoss = bet.status === "lost";
-
-  let statusClass =
-    "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
-  if (isWin)
-    statusClass =
-      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
-  if (isLoss)
-    statusClass = "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
+const BetRow = ({ bet, onCashOut, isCashOutLoading }) => {
+  const isCashOutEligible =
+    bet.status === "pending" &&
+    bet.selections.length === 1 &&
+    bet.selections[0].game?.status === "live";
 
   const betDetails = bet.selections.map((sel) => {
     if (!sel.game) {
@@ -39,15 +35,24 @@ const BetRow = ({ bet }) => {
       <td className="px-6 py-4">{formatCurrency(bet.stake)}</td>
       <td className="px-6 py-4">{bet.totalOdds.toFixed(2)}</td>
       <td className="px-6 py-4">
-        <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}`}
-        >
-          {capitalize(bet.status)}
-        </span>
+        <StatusBadge status={bet.status} />
       </td>
       <td className="px-6 py-4 font-semibold">{formatCurrency(bet.payout)}</td>
       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
         {formatDate(bet.createdAt)}
+      </td>
+      <td className="px-6 py-4">
+        {isCashOutEligible && (
+          <Button
+            onClick={() => onCashOut(bet._id)}
+            loading={isCashOutLoading}
+            disabled={isCashOutLoading}
+            size="sm"
+            className="!px-3 !py-1"
+          >
+            Cash Out
+          </Button>
+        )}
       </td>
     </tr>
   );

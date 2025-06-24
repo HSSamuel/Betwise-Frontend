@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import { LuTimer } from "react-icons/lu";
 
-// Game State Constants
+// ... GameState constants and StatusDisplay component remain the same ...
 const GameState = {
   WAITING: "waiting",
   BETTING: "betting",
@@ -16,21 +16,17 @@ const GameState = {
   CRASHED: "crashed",
 };
 
-// Main Component
 const AdminAviatorPage = () => {
-  const socket = useSocket();
+  const { socket } = useSocket(); // Correction: Destructure the socket object
   const [gameState, setGameState] = useState(GameState.WAITING);
   const [multiplier, setMultiplier] = useState(1.0);
   const [crashPoint, setCrashPoint] = useState(null);
   const [publicHash, setPublicHash] = useState("");
-
   const gameStateRef = useRef(gameState);
 
-  // --- FIX: This useEffect keeps the ref in sync with the state ---
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
-  // --- END FIX ---
 
   useEffect(() => {
     if (socket) {
@@ -39,7 +35,7 @@ const AdminAviatorPage = () => {
       );
     } else {
       console.warn("Aviator Page: Socket object is null. UI will be static.");
-      return; // Exit early if no socket
+      return;
     }
 
     const handleStateChange = (data) => {
@@ -73,8 +69,7 @@ const AdminAviatorPage = () => {
       }
     };
   }, [socket]);
-
-  // Helper function to determine the background color based on the multiplier
+  // ... getBackgroundColor function and JSX remain the same
   const getBackgroundColor = () => {
     if (gameState === GameState.CRASHED) return "bg-gray-800";
     if (multiplier < 5) return "from-sky-900 to-slate-900";
@@ -149,8 +144,6 @@ const AdminAviatorPage = () => {
     </div>
   );
 };
-
-// Sub-component for displaying the current game status
 const StatusDisplay = ({ gameState, crashPoint }) => {
   switch (gameState) {
     case GameState.BETTING:
@@ -195,5 +188,4 @@ const StatusDisplay = ({ gameState, crashPoint }) => {
       );
   }
 };
-
 export default AdminAviatorPage;

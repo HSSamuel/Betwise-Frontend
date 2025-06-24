@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Link } from "react-router-dom";
+import { FaStar } from "react-icons/fa";
 import {
   FaTachometerAlt,
   FaUsers,
@@ -8,9 +9,9 @@ import {
   FaShieldAlt,
   FaHome,
   FaPaperPlane,
+  FaGift, // --- Correction: Added the missing FaGift icon to the import list ---
 } from "react-icons/fa";
 
-// Define all navigation links in a single array for maintainability
 const navLinks = [
   {
     path: "/admin",
@@ -49,9 +50,19 @@ const navLinks = [
     icon: FaPaperPlane,
     color: "text-indigo-400",
   },
-  // Special item to create the divider
+  {
+    path: "/admin/promotions",
+    label: "Promotions",
+    icon: FaGift,
+    color: "text-yellow-400",
+  },
+   {
+    path: "/admin/rankings",
+    label: "Rankings",
+    icon: FaStar,
+    color: "text-orange-400",
+  },
   { type: "divider" },
-  // "isLink: true" tells our code to use a standard <Link> instead of a <NavLink>
   {
     path: "/",
     label: "Back to Site",

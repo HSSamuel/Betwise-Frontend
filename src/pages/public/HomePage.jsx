@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useGameFeeds } from "../../hooks/useGameFeeds";
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
@@ -6,7 +6,6 @@ import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
 import Button from "../../components/ui/Button";
-import OddsDisplay from "../../components/Games/OddsDisplay";
 import {
   FaRegSadTear,
   FaChartLine,
@@ -14,8 +13,10 @@ import {
   FaBroadcastTower,
 } from "react-icons/fa";
 import Tabs from "../../components/ui/Tabs";
-import AISearchBar from "../../components/ai/AISearchBar"; // Restored Import
-import AINewsSummary from "../../components/ai/AINewsSummary"; // Restored Import
+import AISearchBar from "../../components/ai/AISearchBar";
+import AINewsSummary from "../../components/ai/AINewsSummary";
+import { formatTimeAgo } from "../../utils/formatDate";
+import { useSocket } from "../../contexts/SocketContext"; // Correction: Import useSocket
 
 const HeroSection = ({ onBrowseClick }) => (
   <div className="relative rounded-xl overflow-hidden mb-8 h-80 flex items-center justify-center text-center text-white bg-gray-800">
@@ -53,11 +54,11 @@ const EmptyState = ({ icon, title, message }) => (
 
 const HomePage = () => {
   const { user } = useAuth();
-  const { games, isLoading } = useGameFeeds();
+  const { games, isLoading, lastUpdated } = useGameFeeds(); // Correction: Destructure lastUpdated
+  const { isConnected } = useSocket(); // This will now work
   const [activeTab, setActiveTab] = useState("upcoming");
   const gamesSectionRef = useRef(null);
 
-  // --- RESTORED: State and handlers for the search bar ---
   const [searchResults, setSearchResults] = useState(null);
 
   const handleSearchComplete = (games) => {
@@ -68,7 +69,6 @@ const HomePage = () => {
   const handleClearSearch = () => {
     setSearchResults(null);
   };
-  // --- END RESTORED ---
 
   const handleBrowseClick = () => {
     gamesSectionRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -128,7 +128,6 @@ const HomePage = () => {
       <div className="lg:col-span-2 space-y-8">
         <HeroSection onBrowseClick={handleBrowseClick} />
 
-        {/* --- RESTORED: AI Search Bar --- */}
         <AISearchBar
           onSearchComplete={handleSearchComplete}
           onClear={handleClearSearch}
@@ -137,14 +136,21 @@ const HomePage = () => {
         {/* Live Games Section */}
         {(isLoading || games.live.length > 0) && (
           <div>
-            <h2 className="text-3xl font-bold mb-4 flex items-center">
-              <FaBroadcastTower className="mr-3 text-red-500 animate-pulse" />{" "}
-              Live Matches
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-3xl font-bold flex items-center">
+                <FaBroadcastTower className="mr-3 text-red-500 animate-pulse" />{" "}
+                Live Matches
+              </h2>
+              {lastUpdated && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Updated {formatTimeAgo(lastUpdated)}
+                </span>
+              )}
+            </div>
             {isLoading && !games.live.length ? (
               <GameCardSkeleton />
             ) : (
-              <GameList games={games.live} />
+              <GameList games={games.live} isConnected={isConnected} />
             )}
           </div>
         )}

@@ -1,12 +1,10 @@
-// In: Bet/Frontend/src/components/profile/EditProfileModal.jsx
-
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { useApi } from "../../hooks/useApi";
-import { updateProfile } from "../../services/userService"; // We will create this service function next
+import { updateProfile } from "../../services/userService";
 
 const EditProfileModal = ({ isOpen, onClose, user, onProfileUpdate }) => {
   const [formData, setFormData] = useState({
@@ -32,10 +30,10 @@ const EditProfileModal = ({ isOpen, onClose, user, onProfileUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedUser = await submitUpdate(formData);
-    if (updatedUser) {
+    const result = await submitUpdate(formData); // Capture the result
+    if (result) {
       toast.success("Profile updated successfully!");
-      onProfileUpdate(updatedUser);
+      onProfileUpdate(result.user); // Pass the updated user object back
       onClose();
     }
   };

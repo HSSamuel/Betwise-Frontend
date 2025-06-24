@@ -98,3 +98,29 @@ export const deleteRanking = async (id) => {
   const response = await api.delete(`/admin/rankings/${id}`);
   return response.data;
 };
+
+export const adminGetUserDetail = async (id, params) => {
+  const response = await api.get(`/admin/users/${id}/details`, { params });
+  return response.data;
+};
+
+export const adminGetAllPromotions = async () => {
+  // Note: The '/all' is to differentiate from the public route that gets only active promos
+  const response = await api.get("/promotions/all");
+  return response.data;
+};
+
+export const adminCreatePromotion = async (promoData) => {
+  const response = await api.post("/promotions", promoData);
+  return response.data;
+};
+
+export const adminUpdatePromotion = async (id, promoData) => {
+  const response = await api.patch(`/promotions/${id}`, promoData);
+  return response.data;
+};
+
+export const adminDeletePromotion = async (id) => {
+  const response = await api.delete(`/promotions/${id}`);
+  return response.data;
+};

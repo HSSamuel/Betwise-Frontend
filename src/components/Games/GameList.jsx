@@ -2,7 +2,7 @@ import React from "react";
 import GameCard from "./GameCard";
 import { FaRegSadTear } from "react-icons/fa"; // Import an icon
 
-const GameList = ({ games }) => {
+const GameList = ({ games, isConnected }) => {
   if (!games || games.length === 0) {
     // FIX: Use a more engaging empty state component
     return (
@@ -34,7 +34,7 @@ const GameList = ({ games }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {validGames.map((game) => (
-        <GameCard key={game._id} game={game} />
+        <GameCard key={game._id} game={game} isConnected={isConnected} />
       ))}
     </div>
   );

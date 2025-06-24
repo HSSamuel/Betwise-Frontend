@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { useApi } from "./useApi";
-import { getGames, getLiveGamesFeed } from "../services/gameService"; // Updated import
+import { getGames, getLiveGamesFeed } from "../services/gameService";
 import { useSocket } from "../contexts/SocketContext";
 
 export const useGameFeeds = () => {
-  const socket = useSocket();
+  const { socket } = useSocket(); // Correction: Destructure the socket object
   const [games, setGames] = useState({
     upcoming: [],
     live: [],

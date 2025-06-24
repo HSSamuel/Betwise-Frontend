@@ -12,6 +12,7 @@ import Pagination from "../../components/ui/Pagination";
 import { FaTrashAlt, FaUserShield, FaSearch } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useDebounce } from "../../hooks/useDebounce";
+import { Link } from "react-router-dom";
 
 const RoleBadge = ({ role }) => {
   const is_admin = role === "admin";
@@ -19,7 +20,7 @@ const RoleBadge = ({ role }) => {
     <span
       className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
         is_admin
-          ? "bg-purple-200 text-purple-800" // Darker purple text
+          ? "bg-purple-200 text-purple-800"
           : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
       }`}
     >
@@ -49,7 +50,8 @@ const AdminUserManagementPage = () => {
     setFilters((prev) => ({ ...prev, search: e.target.value, page: 1 }));
   };
 
-  const handleDelete = async (user) => {
+  const handleDelete = async (e, user) => {
+    e.stopPropagation(); // Prevent the link from being triggered
     if (
       window.confirm(`Are you sure you want to delete user ${user.username}?`)
     ) {
@@ -63,7 +65,8 @@ const AdminUserManagementPage = () => {
     }
   };
 
-  const handleRoleChange = async (user) => {
+  const handleRoleChange = async (e, user) => {
+    e.stopPropagation(); // Prevent the link from being triggered
     const newRole = user.role === "admin" ? "user" : "admin";
     if (window.confirm(`Change ${user.username}'s role to ${newRole}?`)) {
       try {
@@ -76,7 +79,6 @@ const AdminUserManagementPage = () => {
     }
   };
 
-  // Separate users into admins and regular users for rendering
   const admins = data?.users.filter((u) => u.role === "admin") || [];
   const regularUsers = data?.users.filter((u) => u.role !== "admin") || [];
 
@@ -105,7 +107,6 @@ const AdminUserManagementPage = () => {
       {loading && <Spinner />}
       {error && <p className="text-red-500 text-center">{error}</p>}
 
-      {/* Admins Section */}
       {admins.length > 0 && (
         <>
           <h2 className="text-xl font-semibold mb-3 mt-4 text-purple-700 dark:text-purple-400">
@@ -115,10 +116,12 @@ const AdminUserManagementPage = () => {
             {admins.map((user) => (
               <Card
                 key={user._id}
-                className="!p-4 flex flex-col bg-purple-50 dark:bg-gray-800 border-2 border-purple-500"
+                className="!p-0 flex flex-col bg-purple-50 dark:bg-gray-800 border-2 border-purple-500"
               >
-                {/* Card content is the same, just the container is styled */}
-                <div className="flex-grow">
+                <Link
+                  to={`/admin/users/${user._id}`}
+                  className="p-4 flex-grow hover:bg-purple-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
                       <img
@@ -149,13 +152,13 @@ const AdminUserManagementPage = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
+                </Link>
+                <div className="p-4 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2">
                   <Button
                     size="sm"
                     variant="outline"
                     className="!py-1 !px-2"
-                    onClick={() => handleRoleChange(user)}
+                    onClick={(e) => handleRoleChange(e, user)}
                   >
                     <FaUserShield className="mr-1.5" /> Change Role
                   </Button>
@@ -163,7 +166,7 @@ const AdminUserManagementPage = () => {
                     size="sm"
                     variant="danger"
                     className="!py-1 !px-2"
-                    onClick={() => handleDelete(user)}
+                    onClick={(e) => handleDelete(e, user)}
                   >
                     <FaTrashAlt className="mr-1.5" /> Delete
                   </Button>
@@ -174,7 +177,6 @@ const AdminUserManagementPage = () => {
         </>
       )}
 
-      {/* Regular Users Section */}
       {regularUsers.length > 0 && (
         <>
           {admins.length > 0 && (
@@ -184,9 +186,12 @@ const AdminUserManagementPage = () => {
             {regularUsers.map((user) => (
               <Card
                 key={user._id}
-                className="!p-4 flex flex-col border-2 border-blue-500 bg-blue-50 dark:bg-gray-800"
+                className="!p-0 flex flex-col border-2 border-blue-500 bg-blue-50 dark:bg-gray-800"
               >
-                <div className="flex-grow">
+                <Link
+                  to={`/admin/users/${user._id}`}
+                  className="p-4 flex-grow hover:bg-blue-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
                       <img
@@ -217,13 +222,13 @@ const AdminUserManagementPage = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
+                </Link>
+                <div className="p-4 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2">
                   <Button
                     size="sm"
                     variant="outline"
                     className="!py-1 !px-2"
-                    onClick={() => handleRoleChange(user)}
+                    onClick={(e) => handleRoleChange(e, user)}
                   >
                     <FaUserShield className="mr-1.5" /> Change Role
                   </Button>
@@ -231,7 +236,7 @@ const AdminUserManagementPage = () => {
                     size="sm"
                     variant="danger"
                     className="!py-1 !px-2"
-                    onClick={() => handleDelete(user)}
+                    onClick={(e) => handleDelete(e, user)}
                   >
                     <FaTrashAlt className="mr-1.5" /> Delete
                   </Button>
