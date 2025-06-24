@@ -9,7 +9,7 @@ import {
   FaShieldAlt,
   FaHome,
   FaPaperPlane,
-  FaGift, // --- Correction: Added the missing FaGift icon to the import list ---
+  FaGift,
 } from "react-icons/fa";
 
 const navLinks = [
@@ -56,7 +56,7 @@ const navLinks = [
     icon: FaGift,
     color: "text-yellow-400",
   },
-   {
+  {
     path: "/admin/rankings",
     label: "Rankings",
     icon: FaStar,
@@ -110,12 +110,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </Link>
         </div>
 
-        {/* --- UNIFIED MENU --- */}
-        {/* This single block now renders all links for both mobile and desktop */}
         <div className="px-3 pb-4 overflow-y-auto">
-          <ul className="space-y-2 font-medium">
+          <ul className="space-y-1 font-medium">
             {navLinks.map((item, index) => {
-              // Render a divider
               if (item.type === "divider") {
                 return (
                   <li
@@ -125,7 +122,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 );
               }
 
-              // Content for the link (icon and text)
               const linkContent = (
                 <>
                   <item.icon className={`w-5 h-5 ${item.color}`} />
@@ -133,7 +129,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 </>
               );
 
-              // Render a normal <Link> for "Back to Site"
               if (item.isLink) {
                 return (
                   <li key={index}>
@@ -148,7 +143,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 );
               }
 
-              // Render a <NavLink> for all other items
               return (
                 <li key={index}>
                   <NavLink

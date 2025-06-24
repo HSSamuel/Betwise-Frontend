@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useGameFeeds } from "../../hooks/useGameFeeds";
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
@@ -16,7 +16,7 @@ import Tabs from "../../components/ui/Tabs";
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import { formatTimeAgo } from "../../utils/formatDate";
-import { useSocket } from "../../contexts/SocketContext"; // Correction: Import useSocket
+import { useSocket } from "../../contexts/SocketContext";
 
 const HeroSection = ({ onBrowseClick }) => (
   <div className="relative rounded-xl overflow-hidden mb-8 h-80 flex items-center justify-center text-center text-white bg-gray-800">
@@ -54,12 +54,25 @@ const EmptyState = ({ icon, title, message }) => (
 
 const HomePage = () => {
   const { user } = useAuth();
-  const { games, isLoading, lastUpdated } = useGameFeeds(); // Correction: Destructure lastUpdated
-  const { isConnected } = useSocket(); // This will now work
+  const { games, isLoading } = useGameFeeds();
+  const { isConnected } = useSocket();
   const [activeTab, setActiveTab] = useState("upcoming");
   const gamesSectionRef = useRef(null);
 
   const [searchResults, setSearchResults] = useState(null);
+
+  // FIX: Group upcoming games by league using useMemo for efficiency
+  const upcomingGamesByLeague = useMemo(() => {
+    if (!games.upcoming) return {};
+    return games.upcoming.reduce((acc, game) => {
+      const league = game.league || "Other";
+      if (!acc[league]) {
+        acc[league] = [];
+      }
+      acc[league].push(game);
+      return acc;
+    }, {});
+  }, [games.upcoming]);
 
   const handleSearchComplete = (games) => {
     setSearchResults(games);
@@ -80,7 +93,11 @@ const HomePage = () => {
   ];
 
   const renderTabContent = () => {
-    if (isLoading && !games[activeTab]?.length) {
+    if (
+      isLoading &&
+      !games[activeTab]?.length &&
+      Object.keys(upcomingGamesByLeague).length === 0
+    ) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <GameCardSkeleton />
@@ -89,38 +106,48 @@ const HomePage = () => {
       );
     }
 
-    let gameData, emptyState;
     switch (activeTab) {
       case "upcoming":
-        gameData = games.upcoming;
-        emptyState = (
+        const upcomingLeagues = Object.keys(upcomingGamesByLeague);
+        if (upcomingLeagues.length > 0) {
+          return (
+            <div className="space-y-8">
+              {upcomingLeagues.map((league) => (
+                <div key={league}>
+                  <h2 className="text-2xl font-bold mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    {league}
+                  </h2>
+                  <GameList
+                    games={upcomingGamesByLeague[league]}
+                    isConnected={isConnected}
+                  />
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return (
           <EmptyState
             icon={<FaChartLine />}
             title="No Upcoming Games"
             message="Please check back later for new matches."
           />
         );
-        break;
+
       case "results":
-        gameData = games.finished;
-        emptyState = (
+        if (games.finished && games.finished.length > 0) {
+          return <GameList games={games.finished} isConnected={isConnected} />;
+        }
+        return (
           <EmptyState
             icon={<FaTrophy />}
             title="No Recent Results"
             message="Finished games will appear here."
           />
         );
-        break;
       default:
-        gameData = [];
-        emptyState = null;
+        return null;
     }
-
-    return gameData && gameData.length > 0 ? (
-      <GameList games={gameData} />
-    ) : (
-      emptyState
-    );
   };
 
   return (
@@ -133,51 +160,27 @@ const HomePage = () => {
           onClear={handleClearSearch}
         />
 
-        {/* Live Games Section */}
-        {(isLoading || games.live.length > 0) && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-3xl font-bold flex items-center">
-                <FaBroadcastTower className="mr-3 text-red-500 animate-pulse" />{" "}
-                Live Matches
-              </h2>
-              {lastUpdated && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Updated {formatTimeAgo(lastUpdated)}
-                </span>
-              )}
-            </div>
-            {isLoading && !games.live.length ? (
-              <GameCardSkeleton />
-            ) : (
-              <GameList games={games.live} isConnected={isConnected} />
-            )}
-          </div>
-        )}
-
-        {/* Main Content Area */}
         <div ref={gamesSectionRef}>
           {searchResults ? (
-            // If there are search results, display them
             <div>
               <h2 className="text-3xl font-bold mb-4">Search Results</h2>
-              <GameList games={searchResults} />
+              <GameList games={searchResults} isConnected={isConnected} />
             </div>
           ) : (
-            // Otherwise, display the tabs
             <div>
-              <h2 className="text-3xl font-bold mb-4">Matches & Results</h2>
-              <Tabs
-                tabs={tabs}
-                activeTab={activeTab}
-                onTabClick={setActiveTab}
-              />
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-3xl font-bold">Matches & Results</h2>
+                <Tabs
+                  tabs={tabs}
+                  activeTab={activeTab}
+                  onTabClick={setActiveTab}
+                />
+              </div>
               <div className="mt-4">{renderTabContent()}</div>
             </div>
           )}
         </div>
 
-        {/* --- RESTORED: AI News Summary for logged-in users --- */}
         {user && (
           <>
             <AINewsSummary />

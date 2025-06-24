@@ -6,11 +6,10 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa"; // Correction: Added FaWifi
+import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 
-// Correction: The MatchCenter component now properly uses the `isConnected` prop
 const MatchCenter = ({ game, isConnected }) => {
   if (game.status === "live") {
     return (
@@ -20,7 +19,6 @@ const MatchCenter = ({ game, isConnected }) => {
         </div>
         <div className="text-xs text-red-500 animate-pulse font-semibold flex items-center justify-center space-x-2">
           <span>{game.elapsedTime}' LIVE</span>
-          {/* Add a warning icon if not connected */}
           {!isConnected && (
             <FaWifi
               className="text-yellow-500"
@@ -44,7 +42,6 @@ const MatchCenter = ({ game, isConnected }) => {
   return <div className="text-2xl font-bold text-gray-400 mx-4">VS</div>;
 };
 
-// Correction: The GameCard component now accepts `isConnected` and passes it down
 const GameCard = ({ game, isConnected }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const { data, loading, error, request: fetchAnalysis } = useApi(analyzeGame);
@@ -55,7 +52,7 @@ const GameCard = ({ game, isConnected }) => {
       toast.error("Login or register to view AI analysis");
       return;
     }
-    fetchAnalysis(game._id);
+    fetchAnalysis({ gameId: game._id });
     setModalOpen(true);
   };
 
@@ -101,18 +98,28 @@ const GameCard = ({ game, isConnected }) => {
         <div className="flex items-center justify-around text-center my-4">
           <div className="flex-1 flex flex-col items-center">
             <img
-              src={game.homeTeamLogo || "/default-logo.png"}
+              src={
+                game.homeTeamLogo ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  game.homeTeam
+                )}&background=random&color=fff`
+              }
               alt={game.homeTeam}
-              className="w-12 h-12 mb-2"
+              className="w-12 h-12 mb-2 object-cover rounded-full bg-gray-700"
             />
             <span className="font-bold text-lg">{game.homeTeam}</span>
           </div>
           <MatchCenter game={game} isConnected={isConnected} />
           <div className="flex-1 flex flex-col items-center">
             <img
-              src={game.awayTeamLogo || "/default-logo.png"}
+              src={
+                game.awayTeamLogo ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  game.awayTeam
+                )}&background=random&color=fff`
+              }
               alt={game.awayTeam}
-              className="w-12 h-12 mb-2"
+              className="w-12 h-12 mb-2 object-cover rounded-full bg-gray-700"
             />
             <span className="font-bold text-lg">{game.awayTeam}</span>
           </div>

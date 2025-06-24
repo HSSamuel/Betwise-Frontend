@@ -4,12 +4,13 @@ import { getGames, getLiveGamesFeed } from "../services/gameService";
 import { useSocket } from "../contexts/SocketContext";
 
 export const useGameFeeds = () => {
-  const { socket } = useSocket(); // Correction: Destructure the socket object
+  const { socket } = useSocket();
   const [games, setGames] = useState({
     upcoming: [],
     live: [],
     finished: [],
   });
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const {
     data: upcomingData,
@@ -30,9 +31,9 @@ export const useGameFeeds = () => {
   const isLoading = upcomingLoading || liveLoading || finishedLoading;
 
   const fetchAll = useCallback(() => {
-    fetchUpcoming({ status: "upcoming", limit: 20 });
+    fetchUpcoming({ status: "upcoming", limit: 100 });
     fetchLive();
-    fetchFinished({ status: "finished", limit: 10, order: "desc" });
+    fetchFinished({ status: "finished", limit: 50, order: "desc" });
   }, [fetchUpcoming, fetchLive, fetchFinished]);
 
   useEffect(() => {
@@ -84,14 +85,30 @@ export const useGameFeeds = () => {
           finished: newFinished,
         };
       });
+      setLastUpdated(new Date());
+    };
+
+    const handleOddsUpdate = (data) => {
+      const { gameId, odds } = data;
+      setGames((prevGames) => {
+        const newGames = { ...prevGames };
+        for (const status in newGames) {
+          newGames[status] = newGames[status].map((game) =>
+            game._id === gameId ? { ...game, odds: odds } : game
+          );
+        }
+        return newGames;
+      });
     };
 
     socket.on("gameUpdate", handleGameUpdate);
+    socket.on("oddsUpdate", handleOddsUpdate);
 
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
+      socket.off("oddsUpdate", handleOddsUpdate);
     };
   }, [socket]);
 
-  return { games, isLoading, fetchAll };
+  return { games, isLoading, fetchAll, lastUpdated };
 };

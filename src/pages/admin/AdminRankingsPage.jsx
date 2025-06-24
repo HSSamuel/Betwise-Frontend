@@ -87,7 +87,6 @@ const AdminRankingsPage = () => {
           <table className="min-w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                {/* --- Correction: Added dark mode text color for headers --- */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                   Team Name
                 </th>
@@ -102,7 +101,6 @@ const AdminRankingsPage = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
               {data?.rankings.map((rank) => (
                 <tr key={rank._id}>
-                  {/* --- Correction: Added dark mode text color for table cells --- */}
                   <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
                     {rank.teamName}
                   </td>
@@ -110,23 +108,25 @@ const AdminRankingsPage = () => {
                     {rank.ranking}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mr-2 !p-2"
-                      onClick={() => handleOpenModal(rank)}
-                    >
-                      <FaEdit />
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="!p-2"
-                      onClick={() => handleDelete(rank._id)}
-                      loading={deleting}
-                    >
-                      <FaTrashAlt />
-                    </Button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="!p-2"
+                        onClick={() => handleOpenModal(rank)}
+                      >
+                        <FaEdit />
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        className="!p-2"
+                        onClick={() => handleDelete(rank._id)}
+                        loading={deleting}
+                      >
+                        <FaTrashAlt />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

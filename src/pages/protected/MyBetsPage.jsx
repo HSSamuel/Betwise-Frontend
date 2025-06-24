@@ -4,13 +4,13 @@ import { useApi } from "../../hooks/useApi";
 import { getUserBets, cashOutBet } from "../../services/betService";
 import Spinner from "../../components/ui/Spinner";
 import Pagination from "../../components/ui/Pagination";
-import { FaTicketAlt, FaInbox, FaFilter } from "react-icons/fa";
+import { FaTicketAlt, FaInbox } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
 import BetRow from "../../components/bets/BetRow";
-import Input from "../../components/ui/Input"; // Ensure Input is imported
+import Input from "../../components/ui/Input";
+import Skeleton from "../../components/ui/Skeleton"; // Import the Skeleton component
 
 const MyBetsPage = () => {
-  // --- Implementation: State is now managed by a single 'filters' object ---
   const [filters, setFilters] = useState({
     status: "",
     sortBy: "createdAt",
@@ -25,9 +25,7 @@ const MyBetsPage = () => {
     useApi(cashOutBet);
 
   const fetchLatestBets = useCallback(() => {
-    // Pass the entire filters object to the API call
     const params = { page: currentPage, limit: 12, ...filters };
-    // Clean up empty filter values before sending
     Object.keys(params).forEach((key) => {
       if (!params[key]) delete params[key];
     });
@@ -38,7 +36,6 @@ const MyBetsPage = () => {
     fetchLatestBets();
   }, [fetchLatestBets]);
 
-  // Reset to page 1 only when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
@@ -75,7 +72,6 @@ const MyBetsPage = () => {
         </h1>
       </div>
 
-      {/* --- Implementation: New Filter Bar --- */}
       <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-6 flex flex-wrap items-end gap-4">
         <div>
           <label
@@ -153,8 +149,68 @@ const MyBetsPage = () => {
       </div>
 
       {loading && (
-        <div className="flex justify-center mt-10">
-          <Spinner />
+        <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">
+                  Type
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Selections
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Stake
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Odds
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Status
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Payout
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <tr
+                  key={i}
+                  className="bg-white dark:bg-gray-800 border-b dark:border-gray-700"
+                >
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-12" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-48" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-16" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-12" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-16" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-24" />
+                  </td>
+                  <td className="px-6 py-4"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {error && !loading && (

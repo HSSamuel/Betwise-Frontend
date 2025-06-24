@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useBetSlip } from "../../contexts/BetSlipContext";
 import { useApi } from "../../hooks/useApi";
@@ -7,9 +7,10 @@ import {
   placeMultipleSingles,
   createShareableSlip,
 } from "../../services/betService";
-import { getGameSuggestions } from "../../services/gameService";
+// FIX: Import the AI-based recommendation service instead of the old one.
+import { getRecommendedGames } from "../../services/aiService";
 import { useAuth } from "../../contexts/AuthContext";
-import { useWallet } from "../../contexts/WalletContext"; // --- Implementation: Import useWallet ---
+import { useWallet } from "../../contexts/WalletContext";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
@@ -22,7 +23,8 @@ const HotTip = ({ tip, onAdd }) => {
     { outcome: "B", odds: tip.odds.away, label: "Away Win" },
     { outcome: "Draw", odds: tip.odds.draw, label: "Draw" },
   ];
-  const likelyOutcome = outcomes.sort((a, b) => a.odds - b.odds)[0];
+  const randomIndex = Math.floor(Math.random() * outcomes.length);
+  const randomOutcome = outcomes[randomIndex];
 
   return (
     <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-r-lg">
@@ -31,7 +33,7 @@ const HotTip = ({ tip, onAdd }) => {
       </p>
       <p className="text-xs text-gray-500 dark:text-gray-400">
         Suggested Bet:{" "}
-        <span className="font-semibold">{likelyOutcome.label}</span>
+        <span className="font-semibold">{randomOutcome.label}</span>
       </p>
       <Button
         className="w-full mt-2"
@@ -41,8 +43,8 @@ const HotTip = ({ tip, onAdd }) => {
           onAdd({
             gameId: tip._id,
             gameDetails: { homeTeam: tip.homeTeam, awayTeam: tip.awayTeam },
-            outcome: likelyOutcome.outcome,
-            odds: likelyOutcome.odds,
+            outcome: randomOutcome.outcome,
+            odds: randomOutcome.odds,
           })
         }
       >
@@ -62,11 +64,10 @@ const BetSlip = () => {
   } = useBetSlip();
   const [stake, setStake] = useState("");
   const [betType, setBetType] = useState("Single");
-  const { user, fetchWalletBalance } = useAuth();
-  const { balance } = useWallet();
+  const { user } = useAuth();
+  const { balance, fetchWalletBalance } = useWallet();
   const navigate = useNavigate();
 
-  // --- Implementation: Add state for the 'Keep Selections' toggle ---
   const [keepSelections, setKeepSelections] = useState(false);
 
   const { request: placeSinglesRequest, loading: singleLoading } =
@@ -74,8 +75,9 @@ const BetSlip = () => {
   const { request: placeMultiRequest, loading: multiLoading } =
     useApi(placeMultiBet);
   const { loading: sharing, request: shareSlip } = useApi(createShareableSlip);
+  // FIX: The useApi hook now uses the getRecommendedGames function from aiService.
   const { loading: tipLoading, request: fetchHotTip } =
-    useApi(getGameSuggestions);
+    useApi(getRecommendedGames);
   const [hotTips, setHotTips] = useState([]);
   const isLoading = singleLoading || multiLoading;
 
@@ -110,8 +112,9 @@ const BetSlip = () => {
       return;
     }
     const result = await fetchHotTip();
-    if (result?.suggestions?.length > 0) {
-      setHotTips(result.suggestions);
+    // FIX: The result object from the new endpoint has a 'games' key.
+    if (result?.games?.length > 0) {
+      setHotTips(result.games);
     } else {
       toast.error("Could not fetch new tips at this time.");
       setHotTips([]);
@@ -120,18 +123,15 @@ const BetSlip = () => {
 
   const handleAddTipToSlip = (tipSelection) => {
     addSelection(tipSelection);
-    setHotTips((prevTips) =>
-      prevTips.filter((t) => t._id !== tipSelection.gameId)
-    );
   };
 
   const handleSuccess = (data) => {
     toast.success(data.msg || "Bets placed successfully!");
-    // --- Correction: Only clear selections if the toggle is off ---
     if (!keepSelections) {
       clearSelections();
     }
     setStake("");
+    setHotTips([]);
     if (fetchWalletBalance) fetchWalletBalance();
   };
 
@@ -170,9 +170,16 @@ const BetSlip = () => {
     }
   };
 
+  const handleSetBetType = (type) => {
+    if (type === "Multi" && selections.length < 2) {
+      toast.error("Add at least one more selection to create a multi-bet.");
+      return;
+    }
+    setBetType(type);
+  };
+
   const isMultiBet = betType === "Multi" && selections.length > 1;
 
-  // --- Implementation: New handler for the Quick-Stake buttons ---
   const handleQuickStake = (amount) => {
     const currentStake = parseFloat(stake) || 0;
     if (amount === "Max") {
@@ -205,9 +212,6 @@ const BetSlip = () => {
           >
             <FaLightbulb className="mr-2" /> Get AI Quick Tips
           </Button>
-          {hotTips.map((tip) => (
-            <HotTip key={tip._id} tip={tip} onAdd={handleAddTipToSlip} />
-          ))}
         </div>
       ) : (
         <>
@@ -244,7 +248,7 @@ const BetSlip = () => {
               <div className="flex w-full">
                 <button
                   type="button"
-                  onClick={() => setBetType("Single")}
+                  onClick={() => handleSetBetType("Single")}
                   className={`w-1/2 p-2 text-sm font-semibold border-y border-l rounded-l-md transition-colors ${
                     betType === "Single"
                       ? "bg-green-600 text-white"
@@ -255,12 +259,13 @@ const BetSlip = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBetType("Multi")}
-                  disabled={selections.length < 2}
-                  className={`w-1/2 p-2 text-sm font-semibold border-y border-r rounded-r-md transition-colors disabled:opacity-50 ${
+                  onClick={() => handleSetBetType("Multi")}
+                  className={`w-1/2 p-2 text-sm font-semibold border-y border-r rounded-r-md transition-colors ${
                     betType === "Multi"
                       ? "bg-green-600 text-white"
                       : "bg-gray-200 dark:bg-gray-600"
+                  } ${
+                    selections.length < 2 ? "opacity-50 cursor-pointer" : ""
                   }`}
                 >
                   Multi
@@ -285,7 +290,6 @@ const BetSlip = () => {
               />
             </div>
 
-            {/* --- Implementation: Quick-Stake Buttons --- */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               <Button
                 size="sm"
@@ -339,7 +343,6 @@ const BetSlip = () => {
               </p>
             </div>
 
-            {/* --- Implementation: Keep Selections Toggle --- */}
             <div className="mt-4">
               <label className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                 <input
@@ -364,14 +367,22 @@ const BetSlip = () => {
               <Button
                 onClick={clearSelections}
                 variant="outline"
-                className="w-full"
+                className="w-1/3"
               >
                 Clear Slip
               </Button>
               <Button
+                onClick={handleGetHotTip}
+                variant="outline"
+                className="w-1/3"
+                loading={tipLoading}
+              >
+                <FaPlus className="mr-1" /> More
+              </Button>
+              <Button
                 onClick={handleShareBet}
                 variant="secondary"
-                className="w-full"
+                className="w-1/3"
                 loading={sharing}
               >
                 <FaShareAlt className="mr-2" /> Share
@@ -379,6 +390,15 @@ const BetSlip = () => {
             </div>
           </div>
         </>
+      )}
+
+      {hotTips.length > 0 && (
+        <div className="mt-4 pt-4 border-t dark:border-gray-700">
+          <h4 className="font-semibold text-sm mb-2">Quick Tips</h4>
+          {hotTips.map((tip) => (
+            <HotTip key={tip._id} tip={tip} onAdd={handleAddTipToSlip} />
+          ))}
+        </div>
       )}
     </div>
   );
