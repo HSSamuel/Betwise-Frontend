@@ -14,13 +14,17 @@ import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import { useSocket } from "../../contexts/SocketContext";
 
-const useUserPreferences = () => {
-  const { data: betsData, request: fetchUserBets } = useApi(getUserBets);
+const useUserPreferences = (user) => {
+  const { data: betsData, request: fetchUserBets } = useApi(getUserBets, {
+    showToastOnError: false,
+  });
   const [preferredLeagues, setPreferredLeagues] = useState([]);
 
   useEffect(() => {
-    fetchUserBets({ limit: 100 });
-  }, [fetchUserBets]);
+    if (user) {
+      fetchUserBets({ limit: 100 });
+    }
+  }, [user, fetchUserBets]);
 
   useEffect(() => {
     if (betsData?.bets) {
@@ -85,7 +89,7 @@ const HomePage = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const gamesSectionRef = useRef(null);
   const [searchResults, setSearchResults] = useState(null);
-  const { preferredLeagues } = useUserPreferences();
+  const { preferredLeagues } = useUserPreferences(user);
 
   const upcomingGamesByLeague = useMemo(() => {
     if (!games.upcoming) return {};
@@ -101,16 +105,19 @@ const HomePage = () => {
 
   const sortedLeagueNames = useMemo(() => {
     const leagueNames = Object.keys(upcomingGamesByLeague);
-    return leagueNames.sort((a, b) => {
-      const indexA = preferredLeagues.indexOf(a);
-      const indexB = preferredLeagues.indexOf(b);
+    if (user && preferredLeagues.length > 0) {
+      return leagueNames.sort((a, b) => {
+        const indexA = preferredLeagues.indexOf(a);
+        const indexB = preferredLeagues.indexOf(b);
 
-      if (indexA === -1 && indexB === -1) return 0;
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
-      return indexA - indexB;
-    });
-  }, [upcomingGamesByLeague, preferredLeagues]);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
+    return leagueNames;
+  }, [upcomingGamesByLeague, preferredLeagues, user]);
 
   const handleSearchComplete = (games) => {
     setSearchResults(games);
