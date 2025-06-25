@@ -7,14 +7,14 @@ import {
   placeMultipleSingles,
   createShareableSlip,
 } from "../../services/betService";
-// FIX: Import the AI-based recommendation service instead of the old one.
-import { getRecommendedGames } from "../../services/aiService";
+import { getRecommendedGames, analyzeBetSlip } from "../../services/aiService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useWallet } from "../../contexts/WalletContext";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
-import { FaLightbulb, FaPlus, FaShareAlt } from "react-icons/fa";
+import { FaLightbulb, FaPlus, FaShareAlt, FaBrain } from "react-icons/fa";
+import Spinner from "../ui/Spinner";
 
 const HotTip = ({ tip, onAdd }) => {
   if (!tip) return null;
@@ -67,15 +67,20 @@ const BetSlip = () => {
   const { user } = useAuth();
   const { balance, fetchWalletBalance } = useWallet();
   const navigate = useNavigate();
-
   const [keepSelections, setKeepSelections] = useState(false);
+
+  const {
+    loading: analysisLoading,
+    request: fetchAnalysis,
+    data: analysisData,
+    error: analysisError,
+  } = useApi(analyzeBetSlip);
 
   const { request: placeSinglesRequest, loading: singleLoading } =
     useApi(placeMultipleSingles);
   const { request: placeMultiRequest, loading: multiLoading } =
     useApi(placeMultiBet);
   const { loading: sharing, request: shareSlip } = useApi(createShareableSlip);
-  // FIX: The useApi hook now uses the getRecommendedGames function from aiService.
   const { loading: tipLoading, request: fetchHotTip } =
     useApi(getRecommendedGames);
   const [hotTips, setHotTips] = useState([]);
@@ -112,7 +117,6 @@ const BetSlip = () => {
       return;
     }
     const result = await fetchHotTip();
-    // FIX: The result object from the new endpoint has a 'games' key.
     if (result?.games?.length > 0) {
       setHotTips(result.games);
     } else {
@@ -187,6 +191,12 @@ const BetSlip = () => {
       setStake(maxStake > 0 ? maxStake.toFixed(2) : "0");
     } else {
       setStake((currentStake + amount).toString());
+    }
+  };
+
+  const handleAnalyzeBet = () => {
+    if (selections.length > 1) {
+      fetchAnalysis(selections);
     }
   };
 
@@ -320,6 +330,30 @@ const BetSlip = () => {
                 Max
               </Button>
             </div>
+
+            {isMultiBet && (
+              <div className="my-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleAnalyzeBet}
+                  loading={analysisLoading}
+                  disabled={analysisLoading}
+                >
+                  <FaBrain className="mr-2" />
+                  Analyze Bet with AI
+                </Button>
+                {analysisLoading && <Spinner />}
+                {analysisError && (
+                  <p className="text-red-500 text-xs mt-2">{analysisError}</p>
+                )}
+                {analysisData && (
+                  <div className="mt-2 p-3 bg-blue-50 dark:bg-gray-700/50 text-xs rounded-lg border border-blue-200 dark:border-blue-900">
+                    {analysisData.analysis}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="text-right font-bold text-lg">
               {isMultiBet ? (

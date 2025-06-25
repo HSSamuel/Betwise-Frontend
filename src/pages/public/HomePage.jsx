@@ -1,22 +1,48 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useGameFeeds } from "../../hooks/useGameFeeds";
+import { useApi } from "../../hooks/useApi";
+import { getUserBets } from "../../services/betService";
 import GameList from "../../components/Games/GameList";
 import BetSlip from "../../components/bets/BetSlip";
 import GameCardSkeleton from "../../components/Games/GameCardSkeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import WorldSportsNews from "../../components/news/WorldSportsNews";
 import Button from "../../components/ui/Button";
-import {
-  FaRegSadTear,
-  FaChartLine,
-  FaTrophy,
-  FaBroadcastTower,
-} from "react-icons/fa";
+import { FaRegSadTear, FaChartLine, FaTrophy } from "react-icons/fa";
 import Tabs from "../../components/ui/Tabs";
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
-import { formatTimeAgo } from "../../utils/formatDate";
 import { useSocket } from "../../contexts/SocketContext";
+
+const useUserPreferences = () => {
+  const { data: betsData, request: fetchUserBets } = useApi(getUserBets);
+  const [preferredLeagues, setPreferredLeagues] = useState([]);
+
+  useEffect(() => {
+    fetchUserBets({ limit: 100 });
+  }, [fetchUserBets]);
+
+  useEffect(() => {
+    if (betsData?.bets) {
+      const leagueCounts = betsData.bets.reduce((acc, bet) => {
+        bet.selections.forEach((sel) => {
+          if (sel.game?.league) {
+            acc[sel.game.league] = (acc[sel.game.league] || 0) + 1;
+          }
+        });
+        return acc;
+      }, {});
+
+      const sortedLeagues = Object.entries(leagueCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map((entry) => entry[0]);
+
+      setPreferredLeagues(sortedLeagues);
+    }
+  }, [betsData]);
+
+  return { preferredLeagues };
+};
 
 const HeroSection = ({ onBrowseClick }) => (
   <div className="relative rounded-xl overflow-hidden mb-8 h-80 flex items-center justify-center text-center text-white bg-gray-800">
@@ -58,10 +84,9 @@ const HomePage = () => {
   const { isConnected } = useSocket();
   const [activeTab, setActiveTab] = useState("upcoming");
   const gamesSectionRef = useRef(null);
-
   const [searchResults, setSearchResults] = useState(null);
+  const { preferredLeagues } = useUserPreferences();
 
-  // FIX: Group upcoming games by league using useMemo for efficiency
   const upcomingGamesByLeague = useMemo(() => {
     if (!games.upcoming) return {};
     return games.upcoming.reduce((acc, game) => {
@@ -73,6 +98,19 @@ const HomePage = () => {
       return acc;
     }, {});
   }, [games.upcoming]);
+
+  const sortedLeagueNames = useMemo(() => {
+    const leagueNames = Object.keys(upcomingGamesByLeague);
+    return leagueNames.sort((a, b) => {
+      const indexA = preferredLeagues.indexOf(a);
+      const indexB = preferredLeagues.indexOf(b);
+
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  }, [upcomingGamesByLeague, preferredLeagues]);
 
   const handleSearchComplete = (games) => {
     setSearchResults(games);
@@ -108,11 +146,10 @@ const HomePage = () => {
 
     switch (activeTab) {
       case "upcoming":
-        const upcomingLeagues = Object.keys(upcomingGamesByLeague);
-        if (upcomingLeagues.length > 0) {
+        if (sortedLeagueNames.length > 0) {
           return (
             <div className="space-y-8">
-              {upcomingLeagues.map((league) => (
+              {sortedLeagueNames.map((league) => (
                 <div key={league}>
                   <h2 className="text-2xl font-bold mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
                     {league}

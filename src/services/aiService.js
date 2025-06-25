@@ -47,3 +47,14 @@ export const getGeneralSportsNews = async () => {
   const response = await api.get("/ai/world-sports-news");
   return response.data;
 };
+
+export const generateSocialPost = async (gameId) => {
+  const response = await api.post("/ai/generate-social-post", { gameId });
+  return response.data;
+};
+
+// --- Bet Slip Analysis ---
+export const analyzeBetSlip = async (selections) => {
+  const response = await api.post("/ai/analyze-slip", { selections });
+  return response.data;
+};

@@ -52,7 +52,8 @@ const GameCard = ({ game, isConnected }) => {
       toast.error("Login or register to view AI analysis");
       return;
     }
-    fetchAnalysis({ gameId: game._id });
+    // FIX: Pass the game ID directly as a string, which is what the service expects.
+    fetchAnalysis(game._id);
     setModalOpen(true);
   };
 

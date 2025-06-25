@@ -8,7 +8,7 @@ import {
   FaChevronDown,
   FaRobot,
   FaTrophy,
-} from "react-icons/fa"; // --- Correction: Ensured FaTrophy is imported ---
+} from "react-icons/fa";
 import { formatCurrency } from "../../utils/helpers";
 import logoImg from "../../assets/logo.png";
 import ThemeToggle from "../ui/ThemeToggle";
@@ -197,6 +197,11 @@ const Navbar = () => {
             <NavLink to="/aviator" className={mobileNavLinkClass}>
               Aviator
             </NavLink>
+            {user && (
+              <NavLink to="/assistant" className={mobileNavLinkClass}>
+                AI Assistant
+              </NavLink>
+            )}
             {user && (
               <NavLink to="/my-bets" className={mobileNavLinkClass}>
                 My Bets

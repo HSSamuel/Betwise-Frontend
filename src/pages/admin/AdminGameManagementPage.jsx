@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGames, cancelGame } from "../../services/gameService";
 import Spinner from "../../components/ui/Spinner";
@@ -8,7 +8,8 @@ import toast from "react-hot-toast";
 import { formatDate } from "../../utils/formatDate";
 import CreateGameModal from "../../components/admin/CreateGameModal";
 import SetResultModal from "../../components/admin/SetResultModal";
-import { FaPlus, FaCheckCircle, FaTrashAlt } from "react-icons/fa";
+import SocialPostGeneratorModal from "../../components/admin/SocialPostGeneratorModal";
+import { FaPlus, FaCheckCircle, FaTrashAlt, FaBullhorn } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
 
 const StatusBadge = ({ status }) => {
@@ -35,18 +36,22 @@ const StatusBadge = ({ status }) => {
 const AdminGameManagementPage = () => {
   const { data, loading, error, request: fetchGames } = useApi(getGames);
   const [games, setGames] = useState([]);
-  const { socket } = useSocket(); // --- Correction: Destructure the socket object ---
+  const { socket } = useSocket();
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
 
-  const refetchGames = () => {
+  // FIX: Add the missing state variables and their setters
+  const [isSocialModalOpen, setSocialModalOpen] = useState(false);
+  const [gameForSocial, setGameForSocial] = useState(null);
+
+  const refetchGames = useCallback(() => {
     fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
-  };
+  }, [fetchGames]);
 
   useEffect(() => {
     refetchGames();
-  }, []);
+  }, [refetchGames]);
 
   useEffect(() => {
     if (data?.games) {
@@ -79,12 +84,12 @@ const AdminGameManagementPage = () => {
       });
     };
 
-    socket.on("gameUpdate", handleGameUpdate); // This line will now work correctly
+    socket.on("gameUpdate", handleGameUpdate);
 
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
     };
-  }, [socket]);
+  }, [socket, refetchGames]);
 
   const handleCancelGame = async (gameId) => {
     if (
@@ -107,6 +112,12 @@ const AdminGameManagementPage = () => {
     setResultModalOpen(true);
   };
 
+  // FIX: Add the missing handler function to open the social post modal
+  const openSocialModal = (game) => {
+    setGameForSocial(game);
+    setSocialModalOpen(true);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -127,6 +138,11 @@ const AdminGameManagementPage = () => {
         onClose={() => setResultModalOpen(false)}
         onResultSubmitted={refetchGames}
         game={selectedGame}
+      />
+      <SocialPostGeneratorModal
+        isOpen={isSocialModalOpen}
+        onClose={() => setSocialModalOpen(false)}
+        game={gameForSocial}
       />
 
       {loading && <Spinner />}
@@ -168,6 +184,15 @@ const AdminGameManagementPage = () => {
             <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
               {game.status === "upcoming" && (
                 <>
+                  {/* FIX: Add the button to open the social modal */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openSocialModal(game)}
+                    title="Generate Social Post"
+                  >
+                    <FaBullhorn />
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
