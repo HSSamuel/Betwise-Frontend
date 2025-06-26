@@ -58,3 +58,13 @@ export const analyzeBetSlip = async (selections) => {
   const response = await api.post("/ai/analyze-slip", { selections });
   return response.data;
 };
+
+export const getBetSlipSuggestions = async (slipData) => {
+  const response = await api.post("/ai/slip-suggestions", slipData);
+  return response.data;
+};
+
+export const getPersonalizedNewsFeed = async () => {
+  const response = await api.get("/ai/personalized-news");
+  return response.data;
+};

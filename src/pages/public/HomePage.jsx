@@ -13,6 +13,7 @@ import Tabs from "../../components/ui/Tabs";
 import AISearchBar from "../../components/ai/AISearchBar";
 import AINewsSummary from "../../components/ai/AINewsSummary";
 import { useSocket } from "../../contexts/SocketContext";
+import PersonalizedNewsFeed from "../../components/news/PersonalizedNewsFeed";
 
 const useUserPreferences = (user) => {
   const { data: betsData, request: fetchUserBets } = useApi(getUserBets, {
@@ -227,6 +228,7 @@ const HomePage = () => {
 
         {user && (
           <>
+            <PersonalizedNewsFeed />
             <AINewsSummary />
             <WorldSportsNews />
           </>

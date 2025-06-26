@@ -7,7 +7,11 @@ import {
   placeMultipleSingles,
   createShareableSlip,
 } from "../../services/betService";
-import { getRecommendedGames, analyzeBetSlip } from "../../services/aiService";
+import {
+  getRecommendedGames,
+  analyzeBetSlip,
+  getBetSlipSuggestions,
+} from "../../services/aiService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useWallet } from "../../contexts/WalletContext";
 import { useNavigate } from "react-router-dom";
@@ -75,6 +79,12 @@ const BetSlip = () => {
     data: analysisData,
     error: analysisError,
   } = useApi(analyzeBetSlip);
+
+  const {
+    loading: suggestionsLoading,
+    request: fetchSuggestions,
+    data: suggestionsData,
+  } = useApi(getBetSlipSuggestions);
 
   const { request: placeSinglesRequest, loading: singleLoading } =
     useApi(placeMultipleSingles);
@@ -180,6 +190,12 @@ const BetSlip = () => {
       return;
     }
     setBetType(type);
+  };
+
+  const handleGetSuggestions = () => {
+    if (selections.length > 0) {
+      fetchSuggestions({ selections, totalOdds });
+    }
   };
 
   const isMultiBet = betType === "Multi" && selections.length > 1;
@@ -350,6 +366,41 @@ const BetSlip = () => {
                 {analysisData && (
                   <div className="mt-2 p-3 bg-blue-50 dark:bg-gray-700/50 text-xs rounded-lg border border-blue-200 dark:border-blue-900">
                     {analysisData.analysis}
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={handleGetSuggestions}
+                  loading={suggestionsLoading}
+                  disabled={suggestionsLoading}
+                >
+                  <FaLightbulb className="mr-2" />
+                  Get Bet Suggestions
+                </Button>
+                {suggestionsData && (
+                  <div className="mt-2 space-y-2">
+                    {suggestionsData.combinationSuggestions.map(
+                      (suggestion, index) => (
+                        <div
+                          key={index}
+                          className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                        >
+                          <p className="font-semibold">
+                            {suggestion.gameDetails.homeTeam} vs{" "}
+                            {suggestion.gameDetails.awayTeam}
+                          </p>
+                          <p>Suggestion: {suggestion.outcome}</p>
+                          <p className="text-xs">{suggestion.justification}</p>
+                        </div>
+                      )
+                    )}
+                    {suggestionsData.alternativeBet && (
+                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p className="font-semibold">Alternative Bet</p>
+                        <p>{suggestionsData.alternativeBet.explanation}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

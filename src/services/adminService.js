@@ -62,7 +62,6 @@ export const getGameRiskSummary = async (gameId) => {
 };
 
 export const manualGameSync = async (data) => {
-  // The 'data' object will contain the source, e.g., { source: 'thesportsdb' }
   const response = await api.post("/admin/games/sync", data);
   return response.data;
 };
@@ -73,11 +72,9 @@ export const getRiskOverview = async () => {
 };
 
 export const adminAdjustOdds = async (gameId, odds) => {
-  const response = await api.patch(`/admin/games/${gameId}/adjust-odds`, odds);
+  const response = await api.patch(`/games/${gameId}/adjust-odds`, odds);
   return response.data;
 };
-
-// --- NEW: Functions for Team Ranking Management ---
 
 export const getRankings = async (params) => {
   const response = await api.get("/admin/rankings", { params });
@@ -105,7 +102,6 @@ export const adminGetUserDetail = async (id, params) => {
 };
 
 export const adminGetAllPromotions = async () => {
-  // Note: The '/all' is to differentiate from the public route that gets only active promos
   const response = await api.get("/promotions/all");
   return response.data;
 };
@@ -127,5 +123,11 @@ export const adminDeletePromotion = async (id) => {
 
 export const adminUpdateGame = async (gameId, updateData) => {
   const response = await api.put(`/games/${gameId}`, updateData);
+  return response.data;
+};
+
+// This is the new function that needs to be added
+export const generateSocialMediaCampaign = async (campaignData) => {
+  const response = await api.post("/admin/social-campaign", campaignData);
   return response.data;
 };
