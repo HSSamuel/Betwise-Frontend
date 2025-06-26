@@ -6,7 +6,7 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa";
+import { FaBrain, FaExclamationCircle, FaWifi, FaEdit } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -42,7 +42,7 @@ const MatchCenter = ({ game, isConnected }) => {
   return <div className="text-2xl font-bold text-gray-400 mx-4">VS</div>;
 };
 
-const GameCard = ({ game, isConnected }) => {
+const GameCard = ({ game, isConnected, adminActions = null }) => {
   const [isModalOpen, setModalOpen] = useState(false);
   const { data, loading, error, request: fetchAnalysis } = useApi(analyzeGame);
   const { user } = useAuth();
@@ -52,7 +52,6 @@ const GameCard = ({ game, isConnected }) => {
       toast.error("Login or register to view AI analysis");
       return;
     }
-    // FIX: Pass the game ID directly as a string, which is what the service expects.
     fetchAnalysis(game._id);
     setModalOpen(true);
   };
@@ -87,55 +86,68 @@ const GameCard = ({ game, isConnected }) => {
         )}
       </Modal>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {game.league}
-          </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {formatDate(game.matchDate)}
-          </span>
-        </div>
-        <div className="flex items-center justify-around text-center my-4">
-          <div className="flex-1 flex flex-col items-center">
-            <img
-              src={
-                game.homeTeamLogo ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  game.homeTeam
-                )}&background=random&color=fff`
-              }
-              alt={game.homeTeam}
-              className="w-12 h-12 mb-2 object-cover rounded-full bg-gray-700"
-            />
-            <span className="font-bold text-lg">{game.homeTeam}</span>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 flex flex-col">
+        <div className="flex-grow">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {game.league}
+            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {formatDate(game.matchDate)}
+            </span>
           </div>
-          <MatchCenter game={game} isConnected={isConnected} />
-          <div className="flex-1 flex flex-col items-center">
-            <img
-              src={
-                game.awayTeamLogo ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  game.awayTeam
-                )}&background=random&color=fff`
-              }
-              alt={game.awayTeam}
-              className="w-12 h-12 mb-2 object-cover rounded-full bg-gray-700"
-            />
-            <span className="font-bold text-lg">{game.awayTeam}</span>
+
+          <div className="grid grid-cols-[1fr,auto,1fr] items-center text-center my-4">
+            <div className="flex flex-col items-center">
+              <img
+                src={
+                  game.homeTeamLogo ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    game.homeTeam
+                  )}&background=random&color=fff`
+                }
+                alt={game.homeTeam}
+                className="w-12 h-12 mb-2 object-contain"
+              />
+              <span className="font-bold text-lg text-right">
+                {game.homeTeam}
+              </span>
+            </div>
+            <MatchCenter game={game} isConnected={isConnected} />
+            <div className="flex flex-col items-center">
+              <img
+                src={
+                  game.awayTeamLogo ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    game.awayTeam
+                  )}&background=random&color=fff`
+                }
+                alt={game.awayTeam}
+                className="w-12 h-12 mb-2 object-contain"
+              />
+              <span className="font-bold text-lg text-left">
+                {game.awayTeam}
+              </span>
+            </div>
           </div>
         </div>
+
         {game.status === "upcoming" && (
-          <div className="flex justify-between items-center mt-4 border-t pt-4 dark:border-gray-700">
-            <OddsDisplay game={game} />
+          <div className="flex justify-between items-center mt-auto pt-4 border-t dark:border-gray-700">
+            <div className="flex-grow">
+              <OddsDisplay game={game} />
+            </div>
             <Button
               variant="outline"
               onClick={handleAnalysisClick}
-              className="ml-2 !p-2"
+              className="ml-2 !p-2 flex-shrink-0"
               title="Get AI Analysis"
             >
               <FaBrain size={20} />
             </Button>
+            {adminActions && (
+              <div className="flex-shrink-0 ml-2">{adminActions}</div>
+            )}
           </div>
         )}
       </div>

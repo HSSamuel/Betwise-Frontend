@@ -9,7 +9,14 @@ import { formatDate } from "../../utils/formatDate";
 import CreateGameModal from "../../components/admin/CreateGameModal";
 import SetResultModal from "../../components/admin/SetResultModal";
 import SocialPostGeneratorModal from "../../components/admin/SocialPostGeneratorModal";
-import { FaPlus, FaCheckCircle, FaTrashAlt, FaBullhorn } from "react-icons/fa";
+import EditGameModal from "../../components/admin/EditGameModal";
+import {
+  FaPlus,
+  FaCheckCircle,
+  FaTrashAlt,
+  FaBullhorn,
+  FaEdit,
+} from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
 
 const StatusBadge = ({ status }) => {
@@ -40,10 +47,9 @@ const AdminGameManagementPage = () => {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
-
-  // FIX: Add the missing state variables and their setters
   const [isSocialModalOpen, setSocialModalOpen] = useState(false);
   const [gameForSocial, setGameForSocial] = useState(null);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
 
   const refetchGames = useCallback(() => {
     fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
@@ -61,35 +67,22 @@ const AdminGameManagementPage = () => {
 
   useEffect(() => {
     if (!socket) return;
-
     const handleGameUpdate = (updatedGame) => {
       setGames((prevGames) => {
         const index = prevGames.findIndex((g) => g._id === updatedGame._id);
-
-        if (index === -1 && updatedGame.status === "upcoming") {
-          return [updatedGame, ...prevGames];
-        }
-
-        const newGames = [...prevGames];
-        if (
-          updatedGame.status === "cancelled" ||
-          updatedGame.status === "finished"
-        ) {
-          return newGames.filter((g) => g._id !== updatedGame._id);
-        } else if (index > -1) {
+        if (index > -1) {
+          const newGames = [...prevGames];
           newGames[index] = updatedGame;
           return newGames;
         }
         return prevGames;
       });
     };
-
     socket.on("gameUpdate", handleGameUpdate);
-
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
     };
-  }, [socket, refetchGames]);
+  }, [socket]);
 
   const handleCancelGame = async (gameId) => {
     if (
@@ -112,10 +105,14 @@ const AdminGameManagementPage = () => {
     setResultModalOpen(true);
   };
 
-  // FIX: Add the missing handler function to open the social post modal
   const openSocialModal = (game) => {
     setGameForSocial(game);
     setSocialModalOpen(true);
+  };
+
+  const openEditModal = (game) => {
+    setSelectedGame(game);
+    setEditModalOpen(true);
   };
 
   return (
@@ -144,73 +141,96 @@ const AdminGameManagementPage = () => {
         onClose={() => setSocialModalOpen(false)}
         game={gameForSocial}
       />
+      <EditGameModal
+        isOpen={isEditModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onGameUpdated={refetchGames}
+        game={selectedGame}
+      />
 
       {loading && <Spinner />}
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {games.map((game) => (
-          <Card key={game._id} className="flex flex-col justify-between">
-            <div>
+          <Card key={game._id} className="!p-4">
+            <div className="flex-grow">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 truncate">
                   {game.league}
                 </span>
                 <StatusBadge status={game.status} />
               </div>
 
-              <div className="flex items-center my-2">
+              <div className="flex items-center my-1">
                 <img
-                  src={game.homeTeamLogo || "/default-logo.png"}
+                  src={
+                    game.homeTeamLogo ||
+                    `https://ui-avatars.com/api/?name=${game.homeTeam}`
+                  }
                   alt={game.homeTeam}
-                  className="w-8 h-8 mr-3"
+                  className="w-6 h-6 mr-2 rounded-full object-cover"
                 />
-                <h3 className="text-lg font-bold">{game.homeTeam}</h3>
+                <h3 className="text-base font-bold truncate">
+                  {game.homeTeam}
+                </h3>
               </div>
-              <div className="flex items-center my-2">
+              <div className="flex items-center my-1">
                 <img
-                  src={game.awayTeamLogo || "/default-logo.png"}
+                  src={
+                    game.awayTeamLogo ||
+                    `https://ui-avatars.com/api/?name=${game.awayTeam}`
+                  }
                   alt={game.awayTeam}
-                  className="w-8 h-8 mr-3"
+                  className="w-6 h-6 mr-2 rounded-full object-cover"
                 />
-                <h3 className="text-lg font-bold">{game.awayTeam}</h3>
+                <h3 className="text-base font-bold truncate">
+                  {game.awayTeam}
+                </h3>
               </div>
 
-              <p className="text-xs text-gray-400 mb-4">
+              <p className="text-xs text-gray-400 mt-2">
                 {formatDate(game.matchDate)}
               </p>
             </div>
 
-            <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
-              {game.status === "upcoming" && (
-                <>
-                  {/* FIX: Add the button to open the social modal */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openSocialModal(game)}
-                    title="Generate Social Post"
-                  >
-                    <FaBullhorn />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openResultModal(game)}
-                  >
-                    <FaCheckCircle className="mr-2" />
-                    Set Result
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleCancelGame(game._id)}
-                  >
-                    <FaTrashAlt className="mr-2" />
-                    Cancel
-                  </Button>
-                </>
-              )}
+            <div className="mt-auto pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openEditModal(game)}
+                title="Edit Game"
+                className="!p-2"
+              >
+                <FaEdit />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openSocialModal(game)}
+                title="Generate Social Post"
+                className="!p-2"
+              >
+                <FaBullhorn />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openResultModal(game)}
+                title="Set Result"
+                className="!p-2"
+              >
+                <FaCheckCircle />
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => handleCancelGame(game._id)}
+                title="Cancel Game"
+                className="!p-2"
+              >
+                <FaTrashAlt />
+              </Button>
             </div>
           </Card>
         ))}

@@ -124,3 +124,8 @@ export const adminDeletePromotion = async (id) => {
   const response = await api.delete(`/promotions/${id}`);
   return response.data;
 };
+
+export const adminUpdateGame = async (gameId, updateData) => {
+  const response = await api.put(`/games/${gameId}`, updateData);
+  return response.data;
+};

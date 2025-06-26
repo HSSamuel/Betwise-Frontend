@@ -18,8 +18,6 @@ import {
   FaUser,
   FaHistory,
   FaTicketAlt,
-  FaArrowUp,
-  FaArrowDown,
   FaTrashAlt,
   FaShieldAlt,
 } from "react-icons/fa";
@@ -43,7 +41,6 @@ const AdminUserDetailPage = () => {
     loading,
     error,
     request: fetchDetails,
-    setData: setUserData,
   } = useApi(adminGetUserDetail);
 
   const { loading: roleLoading, request: changeRole } =
@@ -56,28 +53,28 @@ const AdminUserDetailPage = () => {
   const [walletAmount, setWalletAmount] = useState("");
   const [walletDescription, setWalletDescription] = useState("");
 
-  const refetchDetails = useCallback(() => {
+  // FIX: This single useEffect now reliably fetches data on page load and when any filter is changed.
+  useEffect(() => {
     if (userId) {
       const params = { ...filters };
-      Object.keys(params).forEach((key) => !params[key] && delete params[key]);
+      Object.keys(params).forEach((key) => {
+        if (!params[key]) delete params[key];
+      });
       fetchDetails(userId, params);
     }
   }, [userId, filters, fetchDetails]);
 
-  useEffect(() => {
-    refetchDetails();
-  }, [userId]); // Refetch when ID changes
-
   const handleFilterChange = (e) => {
-    setFilters((prev) => ({ ...prev, [name]: e.target.value }));
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  useEffect(() => {
-    refetchDetails();
-  }, [filters.txType, filters.betStatus]); // Refetch only when these filters change
+  const refetchWithCurrentFilters = () => {
+    fetchDetails(userId, filters);
+  };
 
   const handleRoleChange = async () => {
-    const newRole = user.role === "admin" ? "user" : "admin";
+    const newRole = userData.user.role === "admin" ? "user" : "admin";
     if (
       window.confirm(
         `Are you sure you want to change this user's role to ${newRole}?`
@@ -86,7 +83,7 @@ const AdminUserDetailPage = () => {
       const result = await changeRole(userId, newRole);
       if (result) {
         toast.success("User role updated successfully!");
-        refetchDetails();
+        refetchWithCurrentFilters();
       }
     }
   };
@@ -102,7 +99,7 @@ const AdminUserDetailPage = () => {
       toast.success("Wallet adjusted successfully!");
       setWalletAmount("");
       setWalletDescription("");
-      refetchDetails();
+      refetchWithCurrentFilters();
     }
   };
 
@@ -141,43 +138,25 @@ const AdminUserDetailPage = () => {
       </Link>
       <h1 className="text-3xl font-bold mb-6">User Details</h1>
 
-      {/* -- NEW Profile and Actions Layout -- */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
         <Card className="xl:col-span-2">
-          <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6">
+          <div className="flex items-center space-x-6">
             <img
               src={
                 user.profilePicture ||
                 `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random&color=fff`
               }
               alt="Profile"
-              className="w-24 h-24 rounded-full object-cover mb-4 sm:mb-0"
+              className="w-24 h-24 rounded-full object-cover"
             />
-            <div className="text-center sm:text-left">
+            <div>
               <h2 className="text-2xl font-bold">
                 {user.firstName} {user.lastName}
-                <span
-                  className={`ml-3 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.role === "admin"
-                      ? "bg-purple-200 text-purple-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  {user.role}
-                </span>
               </h2>
-              <p className="text-gray-500 dark:text-gray-400">
-                @{user.username}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                {user.email}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                State: {user.state || "N/A"}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Joined: {formatDate(user.createdAt)}
-              </p>
+              <p className="text-gray-500">@{user.username}</p>
+              <p className="text-sm">{user.email}</p>
+              <p className="text-sm">State: {user.state || "N/A"}</p>
+              <p className="text-sm">Joined: {formatDate(user.createdAt)}</p>
               <p className="mt-2 text-xl font-bold">
                 Balance: {formatCurrency(user.walletBalance)}
               </p>
@@ -240,21 +219,128 @@ const AdminUserDetailPage = () => {
         </Card>
       </div>
 
-      {/* -- Existing History Tables -- */}
+      <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg mb-8 flex flex-wrap items-end gap-4">
+        <div>
+          <label htmlFor="txType" className="text-sm font-medium">
+            Transaction Type
+          </label>
+          <select
+            id="txType"
+            name="txType"
+            value={filters.txType}
+            onChange={handleFilterChange}
+            className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          >
+            <option value="">All</option>
+            <option value="bet">Bet</option>
+            <option value="win">Win</option>
+            <option value="topup">Top-up</option>
+            <option value="withdrawal">Withdrawal</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="betStatus" className="text-sm font-medium">
+            Bet Status
+          </label>
+          <select
+            id="betStatus"
+            name="betStatus"
+            value={filters.betStatus}
+            onChange={handleFilterChange}
+            className="w-full mt-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+          >
+            <option value="">All</option>
+            <option value="pending">Pending</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="startDate" className="text-sm font-medium">
+            Start Date
+          </label>
+          <Input
+            id="startDate"
+            name="startDate"
+            type="date"
+            value={filters.startDate}
+            onChange={handleFilterChange}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <label htmlFor="endDate" className="text-sm font-medium">
+            End Date
+          </label>
+          <Input
+            id="endDate"
+            name="endDate"
+            type="date"
+            value={filters.endDate}
+            onChange={handleFilterChange}
+            className="mt-1"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         <Card>
           <h2 className="text-2xl font-bold mb-4 flex items-center">
             <FaHistory className="mr-3" />
             Transaction History
           </h2>
-          {/* ... transaction table JSX remains here ... */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Type</th>
+                  <th className="px-4 py-2">Amount</th>
+                  <th className="px-4 py-2">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx) => (
+                  <tr key={tx._id} className="border-b dark:border-gray-700">
+                    <td className="px-4 py-2">{formatDate(tx.createdAt)}</td>
+                    <td className="px-4 py-2">{capitalize(tx.type)}</td>
+                    <td
+                      className={`px-4 py-2 font-bold ${
+                        tx.amount >= 0 ? "text-green-500" : "text-red-500"
+                      }`}
+                    >
+                      {formatCurrency(tx.amount)}
+                    </td>
+                    <td className="px-4 py-2">{tx.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
         <Card>
           <h2 className="text-2xl font-bold mb-4 flex items-center">
             <FaTicketAlt className="mr-3" />
             Bet History
           </h2>
-          {/* ... bet history table JSX remains here ... */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs uppercase bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-4 py-2">Selections</th>
+                  <th className="px-4 py-2">Stake</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Payout</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bets.map((bet) => (
+                  <BetRow key={bet._id} bet={bet} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
     </div>

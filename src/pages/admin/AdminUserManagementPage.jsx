@@ -20,7 +20,7 @@ const RoleBadge = ({ role }) => {
     <span
       className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
         is_admin
-          ? "bg-purple-200 text-purple-800"
+          ? "bg-purple-200 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
           : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
       }`}
     >
@@ -51,7 +51,7 @@ const AdminUserManagementPage = () => {
   };
 
   const handleDelete = async (e, user) => {
-    e.stopPropagation(); // Prevent the link from being triggered
+    e.stopPropagation();
     if (
       window.confirm(`Are you sure you want to delete user ${user.username}?`)
     ) {
@@ -66,7 +66,7 @@ const AdminUserManagementPage = () => {
   };
 
   const handleRoleChange = async (e, user) => {
-    e.stopPropagation(); // Prevent the link from being triggered
+    e.stopPropagation();
     const newRole = user.role === "admin" ? "user" : "admin";
     if (window.confirm(`Change ${user.username}'s role to ${newRole}?`)) {
       try {
@@ -114,61 +114,49 @@ const AdminUserManagementPage = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 mb-8">
             {admins.map((user) => (
-              <Card
-                key={user._id}
-                className="!p-0 flex flex-col bg-purple-50 dark:bg-gray-800 border-2 border-purple-500"
-              >
+              <Card key={user._id} className="!p-0 flex flex-col">
                 <Link
                   to={`/admin/users/${user._id}`}
-                  className="p-4 flex-grow hover:bg-purple-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
+                  className="p-3 flex-grow hover:bg-purple-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={
-                          user.profilePicture ||
-                          `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=8A2BE2&color=fff`
-                        }
-                        alt="Profile"
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                      <div>
-                        <h3 className="text-base font-bold truncate">
-                          {user.firstName} {user.lastName}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          @{user.username}
-                        </p>
-                      </div>
+                  <div className="flex items-center space-x-2">
+                    <img
+                      src={
+                        user.profilePicture ||
+                        `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=8A2BE2&color=fff`
+                      }
+                      alt="Profile"
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold truncate">
+                        {user.firstName} {user.lastName}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        @{user.username}
+                      </p>
                     </div>
                     <RoleBadge role={user.role} />
                   </div>
-                  <div className="mt-3 text-xs space-y-1">
-                    <p className="truncate text-gray-600 dark:text-gray-300">
-                      <span className="font-semibold">Email:</span> {user.email}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Joined:</span>{" "}
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
                 </Link>
-                <div className="p-4 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2">
+                <div className="p-2 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2 bg-purple-50 dark:bg-gray-800/50 rounded-b-lg">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="!py-1 !px-2"
+                    className="!p-2"
                     onClick={(e) => handleRoleChange(e, user)}
+                    title="Change Role"
                   >
-                    <FaUserShield className="mr-1.5" /> Change Role
+                    <FaUserShield />
                   </Button>
                   <Button
                     size="sm"
                     variant="danger"
-                    className="!py-1 !px-2"
+                    className="!p-2"
                     onClick={(e) => handleDelete(e, user)}
+                    title="Delete User"
                   >
-                    <FaTrashAlt className="mr-1.5" /> Delete
+                    <FaTrashAlt />
                   </Button>
                 </div>
               </Card>
@@ -184,61 +172,49 @@ const AdminUserManagementPage = () => {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {regularUsers.map((user) => (
-              <Card
-                key={user._id}
-                className="!p-0 flex flex-col border-2 border-blue-500 bg-blue-50 dark:bg-gray-800"
-              >
+              <Card key={user._id} className="!p-0 flex flex-col">
                 <Link
                   to={`/admin/users/${user._id}`}
-                  className="p-4 flex-grow hover:bg-blue-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
+                  className="p-3 flex-grow hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors duration-200"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={
-                          user.profilePicture ||
-                          `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random&color=fff`
-                        }
-                        alt="Profile"
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                      <div>
-                        <h3 className="text-base font-bold truncate">
-                          {user.firstName} {user.lastName}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          @{user.username}
-                        </p>
-                      </div>
+                  <div className="flex items-center space-x-2">
+                    <img
+                      src={
+                        user.profilePicture ||
+                        `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random&color=fff`
+                      }
+                      alt="Profile"
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold truncate">
+                        {user.firstName} {user.lastName}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        @{user.username}
+                      </p>
                     </div>
                     <RoleBadge role={user.role} />
                   </div>
-                  <div className="mt-3 text-xs space-y-1">
-                    <p className="truncate text-gray-600 dark:text-gray-300">
-                      <span className="font-semibold">Email:</span> {user.email}
-                    </p>
-                    <p>
-                      <span className="font-semibold">Joined:</span>{" "}
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
                 </Link>
-                <div className="p-4 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2">
+                <div className="p-2 mt-auto border-t dark:border-gray-700 flex justify-end space-x-2 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="!py-1 !px-2"
+                    className="!p-2"
                     onClick={(e) => handleRoleChange(e, user)}
+                    title="Change Role"
                   >
-                    <FaUserShield className="mr-1.5" /> Change Role
+                    <FaUserShield />
                   </Button>
                   <Button
                     size="sm"
                     variant="danger"
-                    className="!py-1 !px-2"
+                    className="!p-2"
                     onClick={(e) => handleDelete(e, user)}
+                    title="Delete User"
                   >
-                    <FaTrashAlt className="mr-1.5" /> Delete
+                    <FaTrashAlt />
                   </Button>
                 </div>
               </Card>

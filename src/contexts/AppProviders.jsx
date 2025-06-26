@@ -1,17 +1,29 @@
-import React from "react";
+import React, { createContext, useContext, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "./ThemeContext";
 import AuthProvider from "./AuthContext";
 import WalletProvider from "./WalletContext";
 import BetSlipProvider from "./BetSlipContext";
 
-/**
- * A single component to compose all global context providers.
- * This helps to flatten the component tree in App.jsx and provides
- * a single location for managing the app's providers.
- * @param {object} props - The component props.
- * @param {React.ReactNode} props.children - The child components to be rendered within the providers.
- */
+// --- NEW: Create Chat Context ---
+const ChatContext = createContext(null);
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (context === undefined) {
+    throw new Error("useChat must be used within a ChatProvider");
+  }
+  return context;
+};
+
+const ChatProvider = ({ children }) => {
+  const [isChatOpen, setChatOpen] = useState(false);
+  const toggleChat = () => setChatOpen((prev) => !prev);
+  const value = { isChatOpen, toggleChat };
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+};
+
 const AppProviders = ({ children }) => {
   return (
     <React.StrictMode>
@@ -19,7 +31,9 @@ const AppProviders = ({ children }) => {
         <ThemeProvider>
           <AuthProvider>
             <WalletProvider>
-              <BetSlipProvider>{children}</BetSlipProvider>
+              <BetSlipProvider>
+                <ChatProvider>{children}</ChatProvider>
+              </BetSlipProvider>
             </WalletProvider>
           </AuthProvider>
         </ThemeProvider>

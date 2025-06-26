@@ -46,8 +46,6 @@ const AdminDashboard = () => {
     loading: financialsLoading,
     request: fetchFinancials,
   } = useApi(getFinancialDashboard);
-  // FIX: Pass an option to the useApi hook to prevent it from showing its own error toast,
-  // as toast.promise will be handling it.
   const { loading: syncLoading, request: runSync } = useApi(manualGameSync, {
     showToastOnError: false,
   });
@@ -84,7 +82,6 @@ const AdminDashboard = () => {
           return data?.msg || `Successfully synced from ${source}!`;
         },
         error: (err) => {
-          // This will now correctly display the 400 error message from the backend.
           const message = err.response?.data?.msg || "Sync failed.";
           return `Error: ${message}`;
         },
@@ -208,17 +205,6 @@ const AdminDashboard = () => {
                 aria-orientation="vertical"
               >
                 <div className="py-1" role="none">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleSync("thesportsdb");
-                    }}
-                    className="text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-                    role="menuitem"
-                  >
-                    Sync from TheSportsDB
-                  </a>
                   <a
                     href="#"
                     onClick={(e) => {
