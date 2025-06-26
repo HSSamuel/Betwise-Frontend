@@ -6,7 +6,7 @@ import Input from "../ui/Input";
 import Spinner from "../ui/Spinner";
 import { generateLimitSuggestion } from "../../services/aiService";
 import { useApi } from "../../hooks/useApi";
-import { FaBrain } from "react-icons/fa";
+import { FaBrain, FaTimes } from "react-icons/fa";
 
 const BettingLimitsForm = () => {
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,9 @@ const BettingLimitsForm = () => {
     weeklyBetCountLimit: 0,
     weeklyStakeAmountLimit: 0,
   });
+
+  // State to hold the AI suggestion object
+  const [suggestion, setSuggestion] = useState(null);
 
   const { loading: suggestionLoading, request: fetchSuggestion } = useApi(
     generateLimitSuggestion
@@ -56,29 +59,34 @@ const BettingLimitsForm = () => {
     }
   };
 
-  // --- Handler for getting AI suggestions ---
   const handleGetSuggestion = async () => {
     const result = await fetchSuggestion();
-    if (result && result.suggestedLimits) {
-      setLimits({
-        weeklyBetCountLimit: result.suggestedLimits.betCount,
-        weeklyStakeAmountLimit: result.suggestedLimits.stakeAmount,
-      });
-      toast.success(result.suggestion, { duration: 6000 });
-    } else if (result) {
-      // Handle cases where there's not enough data for a suggestion
-      toast.success(result.suggestion, { duration: 6000 });
+    if (result) {
+      // Set the entire suggestion object to state instead of just a toast
+      setSuggestion(result);
     }
+  };
+
+  const applySuggestion = () => {
+    if (suggestion && suggestion.suggestedLimits) {
+      setLimits({
+        weeklyBetCountLimit: suggestion.suggestedLimits.betCount,
+        weeklyStakeAmountLimit: suggestion.suggestedLimits.stakeAmount,
+      });
+      toast.success("Suggestion applied!");
+    }
+    setSuggestion(null); // Close the suggestion box
   };
 
   if (pageLoading) return <Spinner />;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         Set limits on your weekly activity. Set to 0 to disable a limit. These
         will reset weekly.
       </p>
+
       <div className="my-4">
         <Button
           type="button"
@@ -91,6 +99,28 @@ const BettingLimitsForm = () => {
           Get AI Suggestion
         </Button>
       </div>
+
+      {/* Persistent Suggestion Box */}
+      {suggestion && (
+        <div className="relative p-4 pr-10 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-r-lg text-sm text-green-800 dark:text-green-200">
+          <button
+            type="button"
+            onClick={() => setSuggestion(null)}
+            className="absolute top-2 right-2 text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-100"
+            aria-label="Dismiss suggestion"
+          >
+            <FaTimes />
+          </button>
+          <p className="font-semibold mb-2">AI Suggestion</p>
+          <p className="mb-3">{suggestion.suggestion}</p>
+          {suggestion.suggestedLimits && (
+            <Button type="button" size="sm" onClick={applySuggestion}>
+              Apply this suggestion
+            </Button>
+          )}
+        </div>
+      )}
+
       <div>
         <label
           className="block text-sm font-medium"
