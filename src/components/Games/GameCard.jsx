@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { formatDate } from "../../utils/formatDate";
 import OddsDisplay from "./OddsDisplay";
 import Modal from "../ui/Modal";
@@ -6,19 +6,46 @@ import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-import { FaBrain, FaExclamationCircle, FaWifi, FaEdit } from "react-icons/fa";
+import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 
+// ** THIS IS THE NEW, DYNAMIC MATCH CENTER WITH A LIVE TIMER **
 const MatchCenter = ({ game, isConnected }) => {
+  // We now use state to manage the displayed time.
+  const [displayTime, setDisplayTime] = useState(game.elapsedTime || 0);
+
+  useEffect(() => {
+    let timer;
+    if (game.status === "live") {
+      // Set the initial time from the game data.
+      setDisplayTime(game.elapsedTime || 0);
+
+      // This timer will increment the displayTime every 60 seconds.
+      timer = setInterval(() => {
+        // We use a function here to ensure we always have the latest state.
+        setDisplayTime((prevTime) => prevTime + 1);
+      }, 60000); // 60,000 milliseconds = 1 minute
+    }
+
+    // This is the cleanup function. It runs when the game is no longer live
+    // or when the component is removed from the page. It's crucial for performance.
+    return () => {
+      clearInterval(timer);
+    };
+    // This effect depends on the game's status and its official elapsed time.
+  }, [game.status, game.elapsedTime]);
+
   if (game.status === "live") {
     return (
       <div className="text-center">
         <div className="text-3xl font-bold text-green-500">
-          {game.scores.home} - {game.scores.away}
+          {/* We now use optional chaining (?.) to prevent errors if scores are missing. */}
+          {game.scores?.home ?? 0} - {game.scores?.away ?? 0}
         </div>
         <div className="text-xs text-red-500 animate-pulse font-semibold flex items-center justify-center space-x-2">
-          <span>{game.elapsedTime}' LIVE</span>
+          {/* The time displayed is now from our state, which is updated by the timer. */}
+          <span>{displayTime}' LIVE</span>
           {!isConnected && (
             <FaWifi
               className="text-yellow-500"
@@ -29,11 +56,12 @@ const MatchCenter = ({ game, isConnected }) => {
       </div>
     );
   }
+
   if (game.status === "finished") {
     return (
       <div className="text-center">
         <div className="text-2xl font-bold text-gray-500 dark:text-gray-300">
-          {game.scores.home ?? "F"} - {game.scores.away ?? "T"}
+          {game.scores?.home ?? "F"} - {game.scores?.away ?? "T"}
         </div>
         <div className="text-xs text-gray-400">Final</div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGames, cancelGame } from "../../services/gameService";
+import { useDebounce } from "../../hooks/useDebounce";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -16,8 +17,10 @@ import {
   FaTrashAlt,
   FaBullhorn,
   FaEdit,
+  FaSearch,
 } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
+import Input from "../../components/ui/Input";
 
 const StatusBadge = ({ status }) => {
   const badgeStyles = {
@@ -42,47 +45,58 @@ const StatusBadge = ({ status }) => {
 
 const AdminGameManagementPage = () => {
   const { data, loading, error, request: fetchGames } = useApi(getGames);
-  const [games, setGames] = useState([]);
   const { socket } = useSocket();
+
+  // State to hold the sorting and searching filters
+  const [filters, setFilters] = useState({
+    sortBy: "matchDate",
+    order: "desc",
+    search: "",
+  });
+
+  // Debounce the search term to avoid excessive API calls
+  const debouncedSearchTerm = useDebounce(filters.search, 500);
+
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isSocialModalOpen, setSocialModalOpen] = useState(false);
-  const [gameForSocial, setGameForSocial] = useState(null);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
 
+  // A stable function to refetch data, including the new filters
   const refetchGames = useCallback(() => {
-    fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
-  }, [fetchGames]);
+    const params = {
+      limit: 100,
+      sortBy: filters.sortBy,
+      order: filters.order,
+      search: debouncedSearchTerm,
+    };
+    fetchGames(params);
+  }, [fetchGames, filters.sortBy, filters.order, debouncedSearchTerm]);
 
   useEffect(() => {
     refetchGames();
   }, [refetchGames]);
 
-  useEffect(() => {
-    if (data?.games) {
-      setGames(data.games);
-    }
-  }, [data]);
+  // Handle changes to the filter inputs
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
 
+  // Real-time updates via WebSocket
   useEffect(() => {
     if (!socket) return;
-    const handleGameUpdate = (updatedGame) => {
-      setGames((prevGames) => {
-        const index = prevGames.findIndex((g) => g._id === updatedGame._id);
-        if (index > -1) {
-          const newGames = [...prevGames];
-          newGames[index] = updatedGame;
-          return newGames;
-        }
-        return prevGames;
-      });
-    };
-    socket.on("gameUpdate", handleGameUpdate);
+    const handleUpdate = () => refetchGames();
+
+    socket.on("gameUpdate", handleUpdate);
+    socket.on("new_game", handleUpdate);
+
     return () => {
-      socket.off("gameUpdate", handleGameUpdate);
+      socket.off("gameUpdate", handleUpdate);
+      socket.off("new_game", handleUpdate);
     };
-  }, [socket]);
+  }, [socket, refetchGames]);
 
   const handleCancelGame = async (gameId) => {
     if (
@@ -106,7 +120,7 @@ const AdminGameManagementPage = () => {
   };
 
   const openSocialModal = (game) => {
-    setGameForSocial(game);
+    setSelectedGame(game);
     setSocialModalOpen(true);
   };
 
@@ -117,7 +131,7 @@ const AdminGameManagementPage = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">Game Management</h1>
         <Button onClick={() => setCreateModalOpen(true)}>
           <FaPlus className="mr-2" />
@@ -125,6 +139,65 @@ const AdminGameManagementPage = () => {
         </Button>
       </div>
 
+      {/* --- NEW: Search and Sort Controls --- */}
+      <Card className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label htmlFor="search" className="sr-only">
+              Search
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaSearch className="text-gray-400" />
+              </div>
+              <Input
+                id="search"
+                name="search"
+                type="text"
+                placeholder="Search by team or league..."
+                value={filters.search}
+                onChange={handleFilterChange}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor="sortBy" className="sr-only">
+                Sort By
+              </label>
+              <select
+                id="sortBy"
+                name="sortBy"
+                value={filters.sortBy}
+                onChange={handleFilterChange}
+                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value="matchDate">Match Date</option>
+                <option value="league">League</option>
+                <option value="homeTeam">Home Team</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="order" className="sr-only">
+                Order
+              </label>
+              <select
+                id="order"
+                name="order"
+                value={filters.order}
+                onChange={handleFilterChange}
+                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Modals */}
       <CreateGameModal
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
@@ -139,7 +212,7 @@ const AdminGameManagementPage = () => {
       <SocialPostGeneratorModal
         isOpen={isSocialModalOpen}
         onClose={() => setSocialModalOpen(false)}
-        game={gameForSocial}
+        game={selectedGame}
       />
       <EditGameModal
         isOpen={isEditModalOpen}
@@ -152,7 +225,7 @@ const AdminGameManagementPage = () => {
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {games.map((game) => (
+        {data?.games?.map((game) => (
           <Card key={game._id} className="!p-4">
             <div className="flex-grow">
               <div className="flex justify-between items-start mb-2">
