@@ -291,8 +291,9 @@ const BetSlip = () => {
                       ? "bg-green-600 text-white"
                       : "bg-gray-200 dark:bg-gray-600"
                   } ${
-                    selections.length < 2 ? "opacity-50 cursor-pointer" : ""
+                    selections.length < 2 ? "opacity-50 cursor-not-allowed" : ""
                   }`}
+                  disabled={selections.length < 2}
                 >
                   Multi
                 </button>
@@ -347,64 +348,71 @@ const BetSlip = () => {
               </Button>
             </div>
 
-            {isMultiBet && (
-              <div className="my-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleAnalyzeBet}
-                  loading={analysisLoading}
-                  disabled={analysisLoading}
-                >
-                  <FaBrain className="mr-2" />
-                  Analyze Bet with AI
-                </Button>
-                {analysisLoading && <Spinner />}
-                {analysisError && (
-                  <p className="text-red-500 text-xs mt-2">{analysisError}</p>
-                )}
-                {analysisData && (
-                  <div className="mt-2 p-3 bg-blue-50 dark:bg-gray-700/50 text-xs rounded-lg border border-blue-200 dark:border-blue-900">
-                    {analysisData.analysis}
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={handleGetSuggestions}
-                  loading={suggestionsLoading}
-                  disabled={suggestionsLoading}
-                >
-                  <FaLightbulb className="mr-2" />
-                  Get Bet Suggestions
-                </Button>
-                {suggestionsData && (
-                  <div className="mt-2 space-y-2">
-                    {suggestionsData.combinationSuggestions.map(
-                      (suggestion, index) => (
-                        <div
-                          key={index}
-                          className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg"
-                        >
-                          <p className="font-semibold">
-                            {suggestion.gameDetails.homeTeam} vs{" "}
-                            {suggestion.gameDetails.awayTeam}
-                          </p>
-                          <p>Suggestion: {suggestion.outcome}</p>
-                          <p className="text-xs">{suggestion.justification}</p>
-                        </div>
-                      )
-                    )}
-                    {suggestionsData.alternativeBet && (
-                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <p className="font-semibold">Alternative Bet</p>
-                        <p>{suggestionsData.alternativeBet.explanation}</p>
+            {/* This is the corrected block for the AI buttons */}
+            <div className="my-4 space-y-2">
+              {selections.length > 1 && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleAnalyzeBet}
+                    loading={analysisLoading}
+                    disabled={analysisLoading}
+                  >
+                    <FaBrain className="mr-2" />
+                    Analyze Bet with AI
+                  </Button>
+                  {analysisLoading && <Spinner />}
+                  {analysisError && (
+                    <p className="text-red-500 text-xs mt-2">{analysisError}</p>
+                  )}
+                  {analysisData && (
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-gray-700/50 text-xs rounded-lg border border-blue-200 dark:border-blue-900">
+                      {analysisData.analysis}
+                    </div>
+                  )}
+                </>
+              )}
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGetSuggestions}
+                loading={suggestionsLoading}
+                disabled={suggestionsLoading}
+              >
+                <FaLightbulb className="mr-2" />
+                Get Bet Suggestions
+              </Button>
+
+              {suggestionsLoading && <Spinner />}
+
+              {suggestionsData && (
+                <div className="mt-2 space-y-2 text-xs">
+                  {suggestionsData.combinationSuggestions?.map(
+                    (suggestion, index) => (
+                      <div
+                        key={index}
+                        className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                      >
+                        <p className="font-semibold">
+                          {suggestion.gameDetails.homeTeam} vs{" "}
+                          {suggestion.gameDetails.awayTeam}
+                        </p>
+                        <p>Suggestion: {suggestion.outcome}</p>
+                        <p className="text-xs">{suggestion.justification}</p>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                    )
+                  )}
+                  {suggestionsData.alternativeBet && (
+                    <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <p className="font-semibold">Alternative Bet</p>
+                      <p>{suggestionsData.alternativeBet.explanation}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="text-right font-bold text-lg">
               {isMultiBet ? (

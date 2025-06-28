@@ -196,14 +196,25 @@ const HomePage = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-8">
+    // FIX: The main container is now a flexbox layout on large screens.
+    // The `lg:items-start` class has been removed to allow the columns to stretch.
+    <div className="flex flex-col lg:flex-row gap-8">
+      {/* Main Content Column */}
+      <div className="w-full lg:w-2/3 space-y-8">
         <HeroSection onBrowseClick={handleBrowseClick} />
 
         <AISearchBar
           onSearchComplete={handleSearchComplete}
           onClear={handleClearSearch}
         />
+
+        {user && (
+          <>
+            <PersonalizedNewsFeed />
+            <AINewsSummary />
+            <WorldSportsNews />
+          </>
+        )}
 
         <div ref={gamesSectionRef}>
           {searchResults ? (
@@ -225,17 +236,12 @@ const HomePage = () => {
             </div>
           )}
         </div>
-
-        {user && (
-          <>
-            <PersonalizedNewsFeed />
-            <AINewsSummary />
-            <WorldSportsNews />
-          </>
-        )}
       </div>
-      <div className="lg:col-span-1">
-        <div className="sticky top-5">
+
+      {/* Sidebar Column */}
+      <div className="w-full lg:w-1/3">
+        {/* The sticky container for the BetSlip */}
+        <div className="lg:sticky top-5">
           <BetSlip />
         </div>
       </div>
