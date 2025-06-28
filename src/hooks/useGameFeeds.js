@@ -73,7 +73,16 @@ export const useGameFeeds = () => {
 
         // Add the game to the correct new list
         if (updatedGame.status === "live") {
-          newLive.unshift(updatedGame);
+          const gameExistsInLive = prev.live.some(
+            (g) => g._id === updatedGame._id
+          );
+          if (gameExistsInLive) {
+            newLive = prev.live.map((g) =>
+              g._id === updatedGame._id ? updatedGame : g
+            );
+          } else {
+            newLive.unshift(updatedGame);
+          }
         } else if (updatedGame.status === "finished") {
           newFinished.unshift(updatedGame);
         }
@@ -88,25 +97,31 @@ export const useGameFeeds = () => {
       setLastUpdated(new Date());
     };
 
+    // ** This function was already present, but now we also listen for the "liveOddsUpdate" event **
     const handleOddsUpdate = (data) => {
       const { gameId, odds } = data;
       setGames((prevGames) => {
         const newGames = { ...prevGames };
         for (const status in newGames) {
-          newGames[status] = newGames[status].map((game) =>
-            game._id === gameId ? { ...game, odds: odds } : game
-          );
+          if (Array.isArray(newGames[status])) {
+            newGames[status] = newGames[status].map((game) =>
+              game._id === gameId ? { ...game, odds: odds } : game
+            );
+          }
         }
         return newGames;
       });
     };
 
     socket.on("gameUpdate", handleGameUpdate);
+    // ** FIX: Listen for both "oddsUpdate" (from admin manual changes) and "liveOddsUpdate" (from AI) **
     socket.on("oddsUpdate", handleOddsUpdate);
+    socket.on("liveOddsUpdate", handleOddsUpdate);
 
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
       socket.off("oddsUpdate", handleOddsUpdate);
+      socket.off("liveOddsUpdate", handleOddsUpdate);
     };
   }, [socket]);
 

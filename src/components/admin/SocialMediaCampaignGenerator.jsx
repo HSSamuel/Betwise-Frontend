@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { useApi } from "../../hooks/useApi";
 import { generateSocialMediaCampaign } from "../../services/adminService";
-import Modal from "../ui/Modal"; // Import the Modal component
+import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import toast from "react-hot-toast";
 
 const SocialMediaCampaignGenerator = ({ isOpen, onClose }) => {
-  // Accept isOpen and onClose props
   const [formData, setFormData] = useState({ league: "", dateRange: "" });
   const {
     data,
@@ -66,14 +65,18 @@ const SocialMediaCampaignGenerator = ({ isOpen, onClose }) => {
         </div>
       )}
       {error && <p className="text-red-500 mt-4">{error}</p>}
+
+      {/* This is the corrected block. 
+              The container for the results now has a maximum height and will scroll if the content overflows.
+            */}
       {data && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 max-h-72 overflow-y-auto pr-2">
           {data.campaign.map((post, index) => (
             <div
               key={index}
               className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
             >
-              <p className="whitespace-pre-wrap">{post}</p>
+              <p className="whitespace-pre-wrap text-sm">{post}</p>
             </div>
           ))}
         </div>
