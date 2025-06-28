@@ -1,20 +1,20 @@
-// In: Bet/Frontend/src/components/ai/AISearchBar.jsx
 import React, { useState } from "react";
 import { useApi } from "../../hooks/useApi";
-import { searchGamesAI } from "../../services/gameService";
-import Input from "../ui/Input";
+import { searchGamesAI } from "../../services/aiService";
 import Button from "../ui/Button";
-import { FaSearch } from "react-icons/fa";
+import Input from "../ui/Input";
+import { FaSearch, FaTimes } from "react-icons/fa";
 
 const AISearchBar = ({ onSearchComplete, onClear }) => {
   const [query, setQuery] = useState("");
-  const { loading, request: performSearch } = useApi(searchGamesAI);
+  const { loading, error, request: performSearch } = useApi(searchGamesAI);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
+
     const result = await performSearch(query);
-    if (result) {
+    if (result && result.games) {
       onSearchComplete(result.games);
     }
   };
@@ -25,22 +25,34 @@ const AISearchBar = ({ onSearchComplete, onClear }) => {
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
-      <form onSubmit={handleSearch} className="flex items-center space-x-2">
-        <Input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Try 'Show me games in England today...'"
-          className="flex-grow"
-        />
-        <Button type="submit" disabled={loading} loading={loading}>
-          <FaSearch />
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+      <form onSubmit={handleSearch} className="flex items-center gap-4">
+        <div className="relative flex-grow">
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for games with AI (e.g., 'champions league games today')"
+            className="w-full !pl-12 !py-3"
+            disabled={loading}
+          />
+        </div>
+        <Button type="submit" loading={loading} disabled={loading}>
+          Search
         </Button>
-        <Button type="button" variant="outline" onClick={handleClear}>
-          Clear
-        </Button>
+        {query && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClear}
+            disabled={loading}
+          >
+            <FaTimes />
+          </Button>
+        )}
       </form>
+      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
     </div>
   );
 };

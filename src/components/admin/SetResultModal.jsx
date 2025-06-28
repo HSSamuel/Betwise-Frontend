@@ -1,64 +1,105 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { setResult } from "../../services/gameService"; // Corrected import path
+import { useApi } from "../../hooks/useApi";
+// ** FIX: Import the correctly named function 'setGameResult' **
+import { setGameResult } from "../../services/gameService";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import Input from "../ui/Input";
 
 const SetResultModal = ({ isOpen, onClose, onResultSubmitted, game }) => {
-  const [loading, setLoading] = useState(false);
-  const [result, setResultValue] = useState("");
+  const [scores, setScores] = useState({ home: "", away: "" });
+  const {
+    loading,
+    error,
+    request: submitResult,
+  } = useApi(setGameResult, { showToastOnError: true });
 
-  if (!game) return null;
+  useEffect(() => {
+    if (game) {
+      setScores({
+        home: game.scores?.home?.toString() || "",
+        away: game.scores?.away?.toString() || "",
+      });
+    }
+  }, [game]);
+
+  const handleChange = (e) => {
+    setScores({ ...scores, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!result) {
-      toast.error("Please select a result.");
-      return;
+    if (scores.home === "" || scores.away === "") {
+      return toast.error("Both scores are required.");
     }
-    setLoading(true);
-    try {
-      await setResult(game._id, result);
-      toast.success("Result set and bets settled!");
+
+    const resultData = {
+      homeScore: parseInt(scores.home, 10),
+      awayScore: parseInt(scores.away, 10),
+    };
+
+    // ** FIX: Call the correctly named function 'submitResult' (which uses setGameResult) **
+    const result = await submitResult(game._id, resultData);
+
+    if (result) {
+      toast.success("Game result has been set successfully!");
       onResultSubmitted();
       onClose();
-    } catch (error) {
-      const message = error.response?.data?.msg || "Failed to set result.";
-      toast.error(message);
-    } finally {
-      setLoading(false);
     }
   };
+
+  if (!game) return null;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Set Result for ${game.homeTeam} vs ${game.awayTeam}`}
+      title={`Set Result for: ${game.homeTeam} vs ${game.awayTeam}`}
     >
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block mb-2">Select Winner</label>
-          <select
-            value={result}
-            onChange={(e) => setResultValue(e.target.value)}
-            className="w-full p-2 border rounded"
-            required
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="home"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
           >
-            <option value="" disabled>
-              -- Select Result --
-            </option>
-            <option value="A">{game.homeTeam} (Home)</option>
-            <option value="B">{game.awayTeam} (Away)</option>
-            <option value="Draw">Draw</option>
-          </select>
+            {game.homeTeam} (Home)
+          </label>
+          <Input
+            id="home"
+            name="home"
+            type="number"
+            min="0"
+            value={scores.home}
+            onChange={handleChange}
+            required
+            className="mt-1"
+          />
         </div>
-        <div className="flex justify-end space-x-2">
+        <div>
+          <label
+            htmlFor="away"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {game.awayTeam} (Away)
+          </label>
+          <Input
+            id="away"
+            name="away"
+            type="number"
+            min="0"
+            value={scores.away}
+            onChange={handleChange}
+            required
+            className="mt-1"
+          />
+        </div>
+        <div className="flex justify-end pt-2 space-x-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" loading={loading} disabled={loading}>
-            Submit Result
+          <Button type="submit" loading={loading}>
+            Set Final Score
           </Button>
         </div>
       </form>

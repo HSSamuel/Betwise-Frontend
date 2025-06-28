@@ -13,19 +13,39 @@ import BetRow from "../../components/bets/BetRow";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { formatCurrency, capitalize } from "../../utils/helpers";
-import { formatDate } from "../../utils/formatDate";
+import { formatDate, formatTimeAgo } from "../../utils/formatDate"; // Corrected import
+import { useSocket } from "../../contexts/SocketContext";
 import {
   FaUser,
   FaHistory,
   FaTicketAlt,
   FaTrashAlt,
   FaShieldAlt,
+  FaSignInAlt,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
+
+const OnlineStatusBadge = ({ isOnline, lastSeen }) => {
+  if (isOnline) {
+    return (
+      <div className="flex items-center text-sm text-green-500">
+        <span className="h-2 w-2 mr-2 bg-green-500 rounded-full animate-pulse"></span>
+        Online
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center text-sm text-gray-400">
+      <span className="h-2 w-2 mr-2 bg-gray-400 rounded-full"></span>
+      Last seen: {formatTimeAgo(lastSeen)}
+    </div>
+  );
+};
 
 const AdminUserDetailPage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { socket } = useSocket();
 
   const [filters, setFilters] = useState({
     txType: "",
@@ -50,11 +70,12 @@ const AdminUserDetailPage = () => {
   );
   const { loading: deleteLoading, request: deleteUser } =
     useApi(adminDeleteUser);
+
   const [walletAmount, setWalletAmount] = useState("");
   const [walletDescription, setWalletDescription] = useState("");
+  const [onlineStatus, setOnlineStatus] = useState(null);
 
-  // FIX: This single useEffect now reliably fetches data on page load and when any filter is changed.
-  useEffect(() => {
+  const refetchWithCurrentFilters = useCallback(() => {
     if (userId) {
       const params = { ...filters };
       Object.keys(params).forEach((key) => {
@@ -64,13 +85,36 @@ const AdminUserDetailPage = () => {
     }
   }, [userId, filters, fetchDetails]);
 
+  useEffect(() => {
+    refetchWithCurrentFilters();
+  }, [refetchWithCurrentFilters]);
+
+  useEffect(() => {
+    if (userData?.user) {
+      setOnlineStatus({
+        isOnline: userData.user.isOnline,
+        lastSeen: userData.user.lastSeen || userData.user.createdAt, // Fallback to joined date
+      });
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (socket) {
+      const handleStatusUpdate = (data) => {
+        if (data.userId === userId) {
+          setOnlineStatus({ isOnline: data.isOnline, lastSeen: data.lastSeen });
+        }
+      };
+      socket.on("userStatusUpdate", handleStatusUpdate);
+      return () => {
+        socket.off("userStatusUpdate", handleStatusUpdate);
+      };
+    }
+  }, [socket, userId]);
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const refetchWithCurrentFilters = () => {
-    fetchDetails(userId, filters);
   };
 
   const handleRoleChange = async () => {
@@ -117,12 +161,14 @@ const AdminUserDetailPage = () => {
     }
   };
 
-  if (loading && !userData)
+  if (loading && !userData) {
     return (
       <div className="flex justify-center items-center h-full">
         <Spinner size="lg" />
       </div>
     );
+  }
+
   if (error) return <p className="text-red-500 text-center">{error}</p>;
   if (!userData) return null;
 
@@ -149,10 +195,16 @@ const AdminUserDetailPage = () => {
               alt="Profile"
               className="w-24 h-24 rounded-full object-cover"
             />
-            <div>
+            <div className="space-y-1">
               <h2 className="text-2xl font-bold">
                 {user.firstName} {user.lastName}
               </h2>
+              {onlineStatus && (
+                <OnlineStatusBadge
+                  isOnline={onlineStatus.isOnline}
+                  lastSeen={onlineStatus.lastSeen}
+                />
+              )}
               <p className="text-gray-500">@{user.username}</p>
               <p className="text-sm">{user.email}</p>
               <p className="text-sm">State: {user.state || "N/A"}</p>

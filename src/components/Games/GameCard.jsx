@@ -109,9 +109,7 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
                 alt={game.homeTeam}
                 className="w-12 h-12 mb-2 object-contain"
               />
-              <span className="font-bold text-lg text-right">
-                {game.homeTeam}
-              </span>
+              <span className="font-bold text-lg">{game.homeTeam}</span>
             </div>
             <MatchCenter game={game} isConnected={isConnected} />
             <div className="flex flex-col items-center">
@@ -125,9 +123,7 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
                 alt={game.awayTeam}
                 className="w-12 h-12 mb-2 object-contain"
               />
-              <span className="font-bold text-lg text-left">
-                {game.awayTeam}
-              </span>
+              <span className="font-bold text-lg">{game.awayTeam}</span>
             </div>
           </div>
         </div>
