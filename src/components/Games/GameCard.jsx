@@ -111,46 +111,56 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
         )}
         {data && data.analysis && (
           <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-bold text-gray-800 dark:text-gray-200">
-                Key Insight
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300">
-                {data.analysis.keyInsight}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-800 dark:text-gray-200">
-                Risk Level
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300">
-                {data.analysis.riskLevel}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-800 dark:text-gray-200">
-                {game.homeTeam}
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300">
-                {data.analysis.homeTeamAnalysis}
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-800 dark:text-gray-200">
-                {game.awayTeam}
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300">
-                {data.analysis.awayTeamAnalysis}
-              </p>
-            </div>
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-              <h4 className="font-bold text-gray-800 dark:text-gray-200">
-                Prediction
-              </h4>
-              <p className="text-gray-600 dark:text-gray-300">
-                {data.analysis.prediction}
-              </p>
-            </div>
+            {data.analysis.keyInsight && (
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">
+                  Key Insight
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {data.analysis.keyInsight}
+                </p>
+              </div>
+            )}
+            {data.analysis.riskLevel && (
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">
+                  Risk Level
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {data.analysis.riskLevel}
+                </p>
+              </div>
+            )}
+            {data.analysis.homeTeamAnalysis && (
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">
+                  {game.homeTeam}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {data.analysis.homeTeamAnalysis}
+                </p>
+              </div>
+            )}
+            {data.analysis.awayTeamAnalysis && (
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">
+                  {game.awayTeam}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {data.analysis.awayTeamAnalysis}
+                </p>
+              </div>
+            )}
+            {data.analysis.prediction && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">
+                  Prediction
+                </h4>
+                <p className="text-gray-600 dark:text-gray-300">
+                  {data.analysis.prediction}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </Modal>
