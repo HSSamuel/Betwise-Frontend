@@ -20,5 +20,7 @@ export const createSocket = (token) => {
     auth: {
       token,
     },
+    // FIX: Prioritize WebSocket transport to prevent polling errors in deployed environments.
+    transports: ["websocket", "polling"],
   });
 };

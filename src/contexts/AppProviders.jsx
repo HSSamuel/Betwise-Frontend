@@ -4,6 +4,7 @@ import { ThemeProvider } from "./ThemeContext";
 import AuthProvider from "./AuthContext";
 import WalletProvider from "./WalletContext";
 import BetSlipProvider from "./BetSlipContext";
+import { SocketProvider } from "./SocketContext"; // Import the SocketProvider
 
 // --- NEW: Create Chat Context ---
 const ChatContext = createContext(null);
@@ -30,11 +31,14 @@ const AppProviders = ({ children }) => {
       <BrowserRouter>
         <ThemeProvider>
           <AuthProvider>
-            <WalletProvider>
-              <BetSlipProvider>
-                <ChatProvider>{children}</ChatProvider>
-              </BetSlipProvider>
-            </WalletProvider>
+            {/* FIX: SocketProvider is now part of the main provider tree */}
+            <SocketProvider>
+              <WalletProvider>
+                <BetSlipProvider>
+                  <ChatProvider>{children}</ChatProvider>
+                </BetSlipProvider>
+              </WalletProvider>
+            </SocketProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
