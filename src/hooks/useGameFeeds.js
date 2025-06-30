@@ -40,7 +40,6 @@ export const useGameFeeds = () => {
     fetchAll();
   }, [fetchAll]);
 
-  // Update state from initial API calls
   useEffect(
     () =>
       setGames((prev) => ({ ...prev, upcoming: upcomingData?.games || [] })),
@@ -56,13 +55,11 @@ export const useGameFeeds = () => {
     [finishedData]
   );
 
-  // This single useEffect now manages all live game state via WebSockets
   useEffect(() => {
     if (!socket) return;
 
     const handleGameUpdate = (updatedGame) => {
       setGames((prev) => {
-        // Remove the game from any list it might be in
         const newUpcoming = prev.upcoming.filter(
           (g) => g._id !== updatedGame._id
         );
@@ -71,7 +68,6 @@ export const useGameFeeds = () => {
           (g) => g._id !== updatedGame._id
         );
 
-        // Add the game to the correct new list
         if (updatedGame.status === "live") {
           const gameExistsInLive = prev.live.some(
             (g) => g._id === updatedGame._id
@@ -97,7 +93,6 @@ export const useGameFeeds = () => {
       setLastUpdated(new Date());
     };
 
-    // ** This function was already present, but now we also listen for the "liveOddsUpdate" event **
     const handleOddsUpdate = (data) => {
       const { gameId, odds } = data;
       setGames((prevGames) => {
@@ -113,17 +108,26 @@ export const useGameFeeds = () => {
       });
     };
 
+    // --- NEW: A listener specifically for when a game's result is set ---
+    const handleGameResultUpdate = (updatedGame) => {
+      console.log("Received game result update:", updatedGame);
+      fetchAll(); // The simplest way to ensure all lists are up-to-date
+    };
+
     socket.on("gameUpdate", handleGameUpdate);
-    // ** FIX: Listen for both "oddsUpdate" (from admin manual changes) and "liveOddsUpdate" (from AI) **
     socket.on("oddsUpdate", handleOddsUpdate);
     socket.on("liveOddsUpdate", handleOddsUpdate);
+    // --- FIX: Add the new listener ---
+    socket.on("gameResultUpdated", handleGameResultUpdate);
 
     return () => {
       socket.off("gameUpdate", handleGameUpdate);
       socket.off("oddsUpdate", handleOddsUpdate);
       socket.off("liveOddsUpdate", handleOddsUpdate);
+      // --- FIX: Clean up the new listener ---
+      socket.off("gameResultUpdated", handleGameResultUpdate);
     };
-  }, [socket]);
+  }, [socket, fetchAll]); // Added fetchAll to the dependency array
 
   return { games, isLoading, fetchAll, lastUpdated };
 };

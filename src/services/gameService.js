@@ -38,8 +38,12 @@ export const createGame = async (gameData) => {
   return response.data;
 };
 
-export const setResult = async (gameId, result) => {
-  const response = await api.patch(`/games/${gameId}/result`, { result });
+export const setResult = async (gameId, result, homeScore, awayScore) => {
+  const response = await api.patch(`/games/${gameId}/result`, {
+    result,
+    homeScore,
+    awayScore,
+  });
   return response.data;
 };
 
@@ -50,5 +54,10 @@ export const cancelGame = async (gameId) => {
 
 export const searchGamesAI = async (query) => {
   const response = await api.post("/ai/game-search", { query });
+  return response.data;
+};
+
+export const getGameDetails = async (id) => {
+  const response = await api.get(`/games/${id}/details`);
   return response.data;
 };

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { formatDate } from "../../utils/formatDate";
 import OddsDisplay from "./OddsDisplay";
+import GameDetailsModal from "./GameDetailsModal"; // Import the new modal
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
 import { useApi } from "../../hooks/useApi";
 import { analyzeGame } from "../../services/aiService";
-import { FaBrain, FaExclamationCircle, FaWifi, FaEdit } from "react-icons/fa";
+import { FaBrain, FaExclamationCircle, FaWifi } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -43,24 +44,32 @@ const MatchCenter = ({ game, isConnected }) => {
 };
 
 const GameCard = ({ game, isConnected, adminActions = null }) => {
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [isAnalysisModalOpen, setAnalysisModalOpen] = useState(false);
+  const [isDetailsModalOpen, setDetailsModalOpen] = useState(false); // State for details modal
   const { data, loading, error, request: fetchAnalysis } = useApi(analyzeGame);
   const { user } = useAuth();
 
-  const handleAnalysisClick = () => {
+  const handleAnalysisClick = (e) => {
+    e.stopPropagation();
     if (!user) {
       toast.error("Login or register to view AI analysis");
       return;
     }
     fetchAnalysis(game._id);
-    setModalOpen(true);
+    setAnalysisModalOpen(true);
+  };
+
+  const handleCardClick = () => {
+    if (game.status === "finished") {
+      setDetailsModalOpen(true);
+    }
   };
 
   return (
     <>
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setModalOpen(false)}
+        isOpen={isAnalysisModalOpen}
+        onClose={() => setAnalysisModalOpen(false)}
         title={`AI Analysis: ${game.homeTeam} vs ${game.awayTeam}`}
       >
         {loading && <Spinner />}
@@ -86,7 +95,18 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
         )}
       </Modal>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 flex flex-col">
+      <GameDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        game={game}
+      />
+
+      <div
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 flex flex-col ${
+          game.status === "finished" ? "cursor-pointer" : ""
+        }`}
+        onClick={handleCardClick}
+      >
         <div className="flex-grow">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -96,7 +116,6 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
               {formatDate(game.matchDate)}
             </span>
           </div>
-
           <div className="grid grid-cols-[1fr,auto,1fr] items-center text-center my-4">
             <div className="flex flex-col items-center">
               <img
@@ -127,7 +146,6 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
             </div>
           </div>
         </div>
-
         {game.status === "upcoming" && (
           <div className="flex justify-between items-center mt-auto pt-4 border-t dark:border-gray-700">
             <div className="flex-grow">
