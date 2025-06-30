@@ -1,12 +1,13 @@
 import api from "./api";
 
+// --- Public Functions ---
 export const getGames = async (params) => {
   const response = await api.get("/games", { params });
   return response.data;
 };
 
 export const getLiveGamesFeed = async () => {
-  const response = await api.get("/games/live-feed");
+  const response = await api.get("/games/live");
   return response.data;
 };
 
@@ -15,40 +16,39 @@ export const getGameById = async (id) => {
   return response.data;
 };
 
-export const cancelGame = async (id) => {
-  const response = await api.patch(`/admin/games/${id}/cancel`);
+// --- Authenticated User Functions ---
+export const getPersonalizedFeed = async () => {
+  const response = await api.get("/games/feed");
   return response.data;
 };
 
+export const getGameSuggestions = async () => {
+  const response = await api.get("/games/suggestions");
+  return response.data;
+};
+
+export const getGameOddsHistory = async (id) => {
+  const response = await api.get(`/games/${id}/odds-history`);
+  return response.data;
+};
+
+// --- Admin Functions ---
 export const createGame = async (gameData) => {
-  const response = await api.post("/admin/games", gameData);
+  const response = await api.post("/games", gameData);
   return response.data;
 };
 
-export const setGameResult = async (id, resultData) => {
-  const response = await api.post(`/admin/games/${id}/result`, resultData);
+export const setResult = async (gameId, result) => {
+  const response = await api.patch(`/games/${gameId}/result`, { result });
   return response.data;
 };
 
-// --- Aviator Specific Functions ---
-
-export const getAviatorHistory = async () => {
-  const response = await api.get("/aviator/history");
+export const cancelGame = async (gameId) => {
+  const response = await api.patch(`/games/${gameId}/cancel`);
   return response.data;
 };
 
-export const placeAviatorBet = async (amount, autoCashOutMultiplier) => {
-  const response = await api.post("/aviator/bet", {
-    amount: parseFloat(amount),
-    autoCashOutMultiplier: autoCashOutMultiplier
-      ? parseFloat(autoCashOutMultiplier)
-      : null,
-  });
-  return response.data;
-};
-
-// ** FIX: This function was missing and has now been added. **
-export const cashOutAviator = async () => {
-  const response = await api.post("/aviator/cashout");
+export const searchGamesAI = async (query) => {
+  const response = await api.post("/ai/game-search", { query });
   return response.data;
 };

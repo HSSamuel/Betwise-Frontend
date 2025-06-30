@@ -19,7 +19,7 @@ import {
   FaPiggyBank,
   FaSync,
   FaChevronDown,
-  FaBullhorn, // Added for the new button
+  FaBullhorn,
 } from "react-icons/fa";
 import { formatCurrency } from "../../utils/helpers";
 

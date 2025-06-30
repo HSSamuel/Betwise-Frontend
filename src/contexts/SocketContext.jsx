@@ -1,58 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import io from "socket.io-client";
-import { useAuth } from "./AuthContext";
+import React, { createContext, useContext } from "react";
 
-const SocketContext = createContext();
+const SocketContext = createContext(null);
 
 export const useSocket = () => {
-  return useContext(SocketContext);
+  const context = useContext(SocketContext);
+  // Add a defensive check to prevent crashes.
+  if (context === null) {
+    // This can happen briefly on initial load before the user is authenticated.
+    // Return a safe default value.
+    return { socket: null, isConnected: false };
+  }
+  return context;
 };
 
-export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const { user } = useAuth(); // Get user from AuthContext
-
-  useEffect(() => {
-    if (user && user.id) {
-      // Connect only when the user is logged in
-      const newSocket = io(import.meta.env.VITE_API_BASE_URL, {
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        // ** Pass userId in the connection query **
-        query: {
-          userId: user.id,
-        },
-      });
-      setSocket(newSocket);
-
-      newSocket.on("connect", () => {
-        setIsConnected(true);
-        console.log("✅ Socket connected successfully with ID:", newSocket.id);
-      });
-
-      newSocket.on("disconnect", () => {
-        setIsConnected(false);
-        console.log("🔌 Socket disconnected.");
-      });
-
-      return () => {
-        newSocket.close();
-        setIsConnected(false);
-      };
-    } else {
-      // If no user, disconnect any existing socket
-      if (socket) {
-        socket.close();
-        setSocket(null);
-        setIsConnected(false);
-      }
-    }
-  }, [user]); // Re-run effect when user object changes
-
+// Correction: The provider should accept a 'value' prop and pass it to the context.
+export const SocketProvider = ({ children, value }) => {
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
   );
 };

@@ -14,6 +14,7 @@ function AppContent() {
   const socketInstance = useRef(null);
 
   useEffect(() => {
+    // Disconnect and clean up any existing socket when the user changes
     if (socketInstance.current) {
       console.log("Cleaning up existing socket connection...");
       socketInstance.current.disconnect();
@@ -30,10 +31,14 @@ function AppContent() {
         return;
       }
 
+      // --- Start of Correction ---
+      // All socket logic is now handled within this block.
+
       const newSocket = createSocket(token);
       socketInstance.current = newSocket;
       setSocket(newSocket);
 
+      // Setup all event listeners on the new socket instance
       newSocket.on("connect", () => {
         console.log(
           `✅ Socket connected successfully with ID: ${newSocket.id}`
@@ -69,6 +74,7 @@ function AppContent() {
         }
       });
 
+      // Listen for custom real-time events
       newSocket.on("bet_settled", (data) => {
         if (data.status === "won") {
           toast.success(`${data.message} You won $${data.payout.toFixed(2)}!`);
@@ -87,6 +93,7 @@ function AppContent() {
 
       newSocket.connect();
 
+      // The cleanup function for this useEffect instance
       return () => {
         console.log("Running cleanup for the user socket effect.");
         newSocket.off("connect");
@@ -96,6 +103,7 @@ function AppContent() {
         newSocket.off("withdrawal_processed");
         newSocket.disconnect();
       };
+      // --- End of Correction ---
     } else {
       setIsConnected(false);
       if (socketInstance.current) {
@@ -104,10 +112,7 @@ function AppContent() {
         setSocket(null);
       }
     }
-    // FIX: Changed dependency from [user] to [user?._id]
-    // This prevents the socket from reconnecting every time the user object is updated.
-    // It will now only reconnect when the user logs in or out.
-  }, [user?._id, logout]);
+  }, [user, logout]);
 
   return (
     <SocketProvider value={{ socket, isConnected }}>

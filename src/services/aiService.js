@@ -68,8 +68,3 @@ export const getPersonalizedNewsFeed = async () => {
   const response = await api.get("/ai/personalized-news");
   return response.data;
 };
-
-export const searchGamesAI = async (query) => {
-  const response = await api.post("/ai/search-games", { query });
-  return response.data;
-};

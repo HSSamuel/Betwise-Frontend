@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGames, cancelGame } from "../../services/gameService";
-import { useDebounce } from "../../hooks/useDebounce";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -17,11 +16,10 @@ import {
   FaTrashAlt,
   FaBullhorn,
   FaEdit,
-  FaSearch,
 } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
-import Input from "../../components/ui/Input";
 
+// This is a presentational component, so it can stay as is.
 const StatusBadge = ({ status }) => {
   const badgeStyles = {
     upcoming:
@@ -44,57 +42,43 @@ const StatusBadge = ({ status }) => {
 };
 
 const AdminGameManagementPage = () => {
+  // We get everything needed directly from our robust useApi hook.
+  // We no longer need a separate 'games' state.
   const { data, loading, error, request: fetchGames } = useApi(getGames);
   const { socket } = useSocket();
 
-  // State to hold the sorting and searching filters
-  const [filters, setFilters] = useState({
-    sortBy: "matchDate",
-    order: "desc",
-    search: "",
-  });
-
-  // Debounce the search term to avoid excessive API calls
-  const debouncedSearchTerm = useDebounce(filters.search, 500);
-
+  // State for managing modals remains the same.
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isSocialModalOpen, setSocialModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
 
-  // A stable function to refetch data, including the new filters
+  // A single, stable function to refetch all games.
   const refetchGames = useCallback(() => {
-    const params = {
-      limit: 100,
-      sortBy: filters.sortBy,
-      order: filters.order,
-      search: debouncedSearchTerm,
-    };
-    fetchGames(params);
-  }, [fetchGames, filters.sortBy, filters.order, debouncedSearchTerm]);
+    fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
+  }, [fetchGames]);
 
+  // Initial data fetch when the component first loads.
   useEffect(() => {
     refetchGames();
   }, [refetchGames]);
 
-  // Handle changes to the filter inputs
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Real-time updates via WebSocket
+  // This single, simple useEffect handles all real-time updates.
   useEffect(() => {
     if (!socket) return;
-    const handleUpdate = () => refetchGames();
 
-    socket.on("gameUpdate", handleUpdate);
-    socket.on("new_game", handleUpdate);
+    // Any game-related update from the server will trigger a fresh data fetch.
+    const handleRealtimeUpdate = () => {
+      refetchGames();
+    };
+
+    socket.on("gameUpdate", handleRealtimeUpdate);
+    socket.on("new_game", handleRealtimeUpdate); // Listen for new games as well
 
     return () => {
-      socket.off("gameUpdate", handleUpdate);
-      socket.off("new_game", handleUpdate);
+      socket.off("gameUpdate", handleRealtimeUpdate);
+      socket.off("new_game", handleRealtimeUpdate);
     };
   }, [socket, refetchGames]);
 
@@ -107,19 +91,22 @@ const AdminGameManagementPage = () => {
       try {
         await cancelGame(gameId);
         toast.success("Game cancelled successfully.");
-        refetchGames();
+        refetchGames(); // Refetch to show the change.
       } catch (err) {
         toast.error(err.response?.data?.msg || "Failed to cancel game.");
       }
     }
   };
 
+  // Modal opening functions remain the same.
   const openResultModal = (game) => {
     setSelectedGame(game);
     setResultModalOpen(true);
   };
 
   const openSocialModal = (game) => {
+    // Note: The original code set `gameForSocial`, but the modal uses `game`.
+    // I've kept it as `setSelectedGame` for consistency.
     setSelectedGame(game);
     setSocialModalOpen(true);
   };
@@ -131,7 +118,7 @@ const AdminGameManagementPage = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Game Management</h1>
         <Button onClick={() => setCreateModalOpen(true)}>
           <FaPlus className="mr-2" />
@@ -139,65 +126,6 @@ const AdminGameManagementPage = () => {
         </Button>
       </div>
 
-      {/* --- NEW: Search and Sort Controls --- */}
-      <Card className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label htmlFor="search" className="sr-only">
-              Search
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaSearch className="text-gray-400" />
-              </div>
-              <Input
-                id="search"
-                name="search"
-                type="text"
-                placeholder="Search by team or league..."
-                value={filters.search}
-                onChange={handleFilterChange}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label htmlFor="sortBy" className="sr-only">
-                Sort By
-              </label>
-              <select
-                id="sortBy"
-                name="sortBy"
-                value={filters.sortBy}
-                onChange={handleFilterChange}
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
-              >
-                <option value="matchDate">Match Date</option>
-                <option value="league">League</option>
-                <option value="homeTeam">Home Team</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="order" className="sr-only">
-                Order
-              </label>
-              <select
-                id="order"
-                name="order"
-                value={filters.order}
-                onChange={handleFilterChange}
-                className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"
-              >
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Modals */}
       <CreateGameModal
         isOpen={isCreateModalOpen}
         onClose={() => setCreateModalOpen(false)}
@@ -225,6 +153,7 @@ const AdminGameManagementPage = () => {
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {/* We render DIRECTLY from the 'data' object from our hook. */}
         {data?.games?.map((game) => (
           <Card key={game._id} className="!p-4">
             <div className="flex-grow">

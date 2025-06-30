@@ -1,34 +1,36 @@
-import React from "react";
-// ** FIX: We now import the powerful useGameFeeds hook we updated in the last step. **
-import { useGameFeeds } from "../../hooks/useGameFeeds";
+import React, { useEffect } from "react";
+import { useApi } from "../../hooks/useApi";
+import { getLiveGamesFeed } from "../../services/gameService";
 import GameList from "../../components/Games/GameList";
 import Spinner from "../../components/ui/Spinner";
 import { FaBroadcastTower } from "react-icons/fa";
 
 const LivePage = () => {
-  // ** FIX: We get our live games directly from the central useGameFeeds hook. **
-  // This ensures this page uses the same real-time data as the homepage.
-  const { games, isLoading } = useGameFeeds();
+  const {
+    data: liveGames,
+    loading,
+    error,
+    request: fetchLiveGames,
+  } = useApi(getLiveGamesFeed);
+
+  useEffect(() => {
+    fetchLiveGames();
+  }, [fetchLiveGames]);
 
   const renderContent = () => {
-    // ** FIX: The loading logic is now simpler and more robust. **
-    // We show a spinner only if the data is loading for the first time.
-    if (isLoading && !games.live?.length) {
+    if (loading) {
       return (
         <div className="flex justify-center mt-10">
           <Spinner size="lg" />
         </div>
       );
     }
-
-    // The error handling is now managed by the useApi hook, which shows a toast.
-
-    // ** FIX: We render the game list directly from games.live. **
-    if (games.live && games.live.length > 0) {
-      return <GameList games={games.live} />;
+    if (error) {
+      return <p className="text-red-500 text-center">{error}</p>;
     }
-
-    // This part for showing "No Live Games" remains the same.
+    if (liveGames?.games && liveGames.games.length > 0) {
+      return <GameList games={liveGames.games} />;
+    }
     return (
       <div className="text-center text-gray-500 mt-10 py-16">
         <FaBroadcastTower className="mx-auto text-4xl text-gray-400 mb-4" />
