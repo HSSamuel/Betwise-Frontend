@@ -6,11 +6,11 @@ import {
 } from "../../services/adminService";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
-import Card from "../../components/ui/Card"; // Import Card for the new layout
+import Card from "../../components/ui/Card";
 import toast from "react-hot-toast";
 import { formatDate } from "../../utils/formatDate";
 import { formatCurrency } from "../../utils/helpers";
-import { FaCheck, FaTimes, FaInbox } from "react-icons/fa"; // Import icons
+import { FaCheck, FaTimes, FaInbox } from "react-icons/fa";
 
 const AdminWithdrawalsPage = () => {
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -43,7 +43,6 @@ const AdminWithdrawalsPage = () => {
     }
   };
 
-  // Using a more modern button-style for the tabs
   const tabClass = (tabName) =>
     `px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
       statusFilter === tabName
@@ -51,7 +50,6 @@ const AdminWithdrawalsPage = () => {
         : "text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
     }`;
 
-  // This function will render our new layout
   const renderContent = () => {
     if (loading) {
       return (
@@ -65,7 +63,6 @@ const AdminWithdrawalsPage = () => {
       return <p className="text-red-500 text-center mt-10">{error}</p>;
     }
 
-    // An improved "empty state" when there are no withdrawals
     if (!withdrawals || withdrawals.length === 0) {
       return (
         <div className="text-center text-gray-500 mt-10 py-16 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
@@ -80,31 +77,33 @@ const AdminWithdrawalsPage = () => {
       );
     }
 
-    // Render a grid of cards instead of a table for a cleaner look
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      // FIX: Changed grid columns to show more cards per row on larger screens
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {withdrawals.map((w) => (
-          <Card key={w._id} className="flex flex-col justify-between">
+          // FIX: Reduced padding on the card from !p-4 to !p-3 for a more compact look
+          <Card key={w._id} className="!p-3 flex flex-col justify-between">
             <div>
+              {/* FIX: Reduced text sizes and margins for a tighter layout */}
               <div className="mb-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400">User</p>
-                <p className="font-bold">
+                <p className="text-xs text-gray-500 dark:text-gray-400">User</p>
+                <p className="font-bold text-sm break-words">
                   {w.user?.username} ({w.user?.email})
                 </p>
               </div>
               <div className="mb-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Amount Requested
                 </p>
-                <p className="font-bold text-2xl text-red-500">
+                <p className="font-bold text-xl text-red-500">
                   {formatCurrency(w.amount)}
                 </p>
               </div>
-              <div className="mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   User's Current Balance
                 </p>
-                <p className="font-semibold">
+                <p className="font-semibold text-sm">
                   {formatCurrency(w.user?.walletBalance)}
                 </p>
               </div>
@@ -113,16 +112,23 @@ const AdminWithdrawalsPage = () => {
               </p>
             </div>
             {statusFilter === "pending" && (
-              <div className="mt-4 pt-4 border-t dark:border-gray-700 flex justify-end space-x-2">
+              // FIX: Reduced top margin to bring buttons closer
+              <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-end space-x-2">
                 <Button
                   variant="danger"
+                  size="sm" // Use small buttons
+                  className="!px-3 !py-1" // Custom compact padding
                   onClick={() => handleProcess(w._id, "rejected")}
                 >
-                  <FaTimes className="mr-2" />
+                  <FaTimes className="mr-1" />
                   Reject
                 </Button>
-                <Button onClick={() => handleProcess(w._id, "approved")}>
-                  <FaCheck className="mr-2" />
+                <Button
+                  size="sm" // Use small buttons
+                  className="!px-3 !py-1" // Custom compact padding
+                  onClick={() => handleProcess(w._id, "approved")}
+                >
+                  <FaCheck className="mr-1" />
                   Approve
                 </Button>
               </div>

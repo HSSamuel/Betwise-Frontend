@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGames, cancelGame } from "../../services/gameService";
 import Spinner from "../../components/ui/Spinner";
@@ -16,10 +16,11 @@ import {
   FaTrashAlt,
   FaBullhorn,
   FaEdit,
+  FaSearch,
 } from "react-icons/fa";
 import { useSocket } from "../../contexts/SocketContext";
+import { useDebounce } from "../../hooks/useDebounce";
 
-// This is a presentational component, so it can stay as is.
 const StatusBadge = ({ status }) => {
   const badgeStyles = {
     upcoming:
@@ -42,45 +43,42 @@ const StatusBadge = ({ status }) => {
 };
 
 const AdminGameManagementPage = () => {
-  // We get everything needed directly from our robust useApi hook.
-  // We no longer need a separate 'games' state.
+  const [filters, setFilters] = useState({ search: "" });
+  const debouncedSearchTerm = useDebounce(filters.search, 300);
   const { data, loading, error, request: fetchGames } = useApi(getGames);
   const { socket } = useSocket();
 
-  // State for managing modals remains the same.
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [isResultModalOpen, setResultModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isSocialModalOpen, setSocialModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
 
-  // A single, stable function to refetch all games.
   const refetchGames = useCallback(() => {
-    fetchGames({ limit: 100, sortBy: "matchDate", order: "desc" });
+    // FIX: Changed limit from 500 to 100 to match backend validation.
+    fetchGames({ limit: 100 });
   }, [fetchGames]);
 
-  // Initial data fetch when the component first loads.
   useEffect(() => {
     refetchGames();
   }, [refetchGames]);
 
-  // This single, simple useEffect handles all real-time updates.
   useEffect(() => {
     if (!socket) return;
-
-    // Any game-related update from the server will trigger a fresh data fetch.
     const handleRealtimeUpdate = () => {
       refetchGames();
     };
-
     socket.on("gameUpdate", handleRealtimeUpdate);
-    socket.on("new_game", handleRealtimeUpdate); // Listen for new games as well
-
+    socket.on("new_game", handleRealtimeUpdate);
     return () => {
       socket.off("gameUpdate", handleRealtimeUpdate);
       socket.off("new_game", handleRealtimeUpdate);
     };
   }, [socket, refetchGames]);
+
+  const handleSearchChange = (e) => {
+    setFilters((prev) => ({ ...prev, search: e.target.value }));
+  };
 
   const handleCancelGame = async (gameId) => {
     if (
@@ -91,22 +89,48 @@ const AdminGameManagementPage = () => {
       try {
         await cancelGame(gameId);
         toast.success("Game cancelled successfully.");
-        refetchGames(); // Refetch to show the change.
+        refetchGames();
       } catch (err) {
         toast.error(err.response?.data?.msg || "Failed to cancel game.");
       }
     }
   };
 
-  // Modal opening functions remain the same.
+  const sortedAndFilteredGames = useMemo(() => {
+    if (!data?.games) return [];
+
+    const statusOrder = {
+      live: 1,
+      upcoming: 2,
+      finished: 3,
+      cancelled: 4,
+    };
+
+    const filtered = data.games.filter((game) => {
+      const searchTerm = debouncedSearchTerm.toLowerCase();
+      return (
+        game.homeTeam.toLowerCase().includes(searchTerm) ||
+        game.awayTeam.toLowerCase().includes(searchTerm) ||
+        game.league.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    return filtered.sort((a, b) => {
+      const statusA = statusOrder[a.status] || 99;
+      const statusB = statusOrder[b.status] || 99;
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+      return new Date(b.matchDate) - new Date(a.matchDate);
+    });
+  }, [data, debouncedSearchTerm]);
+
   const openResultModal = (game) => {
     setSelectedGame(game);
     setResultModalOpen(true);
   };
 
   const openSocialModal = (game) => {
-    // Note: The original code set `gameForSocial`, but the modal uses `game`.
-    // I've kept it as `setSelectedGame` for consistency.
     setSelectedGame(game);
     setSocialModalOpen(true);
   };
@@ -124,6 +148,19 @@ const AdminGameManagementPage = () => {
           <FaPlus className="mr-2" />
           Create Game
         </Button>
+      </div>
+
+      <div className="mb-6">
+        <div className="relative">
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by team name or league..."
+            value={filters.search}
+            onChange={handleSearchChange}
+            className="w-full max-w-lg p-3 pl-12 border rounded-full dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-green-500 transition"
+          />
+        </div>
       </div>
 
       <CreateGameModal
@@ -149,12 +186,11 @@ const AdminGameManagementPage = () => {
         game={selectedGame}
       />
 
-      {loading && <Spinner />}
+      {loading && !data && <Spinner />}
       {error && <p className="text-red-500 text-center">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* We render DIRECTLY from the 'data' object from our hook. */}
-        {data?.games?.map((game) => (
+        {sortedAndFilteredGames.map((game) => (
           <Card key={game._id} className="!p-4">
             <div className="flex-grow">
               <div className="flex justify-between items-start mb-2">

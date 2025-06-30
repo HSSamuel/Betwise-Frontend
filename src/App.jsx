@@ -14,104 +14,105 @@ function AppContent() {
   const socketInstance = useRef(null);
 
   useEffect(() => {
-    // Disconnect and clean up any existing socket when the user changes
-    if (socketInstance.current) {
-      console.log("Cleaning up existing socket connection...");
-      socketInstance.current.disconnect();
-    }
-
     if (user) {
-      console.log("User detected, attempting to establish socket connection.");
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        console.error(
-          "Socket Error: No access token found for logged-in user."
-        );
-        logout();
-        return;
-      }
-
-      // --- Start of Correction ---
-      // All socket logic is now handled within this block.
-
-      const newSocket = createSocket(token);
-      socketInstance.current = newSocket;
-      setSocket(newSocket);
-
-      // Setup all event listeners on the new socket instance
-      newSocket.on("connect", () => {
-        console.log(
-          `✅ Socket connected successfully with ID: ${newSocket.id}`
-        );
-        setIsConnected(true);
-        newSocket.emit("joinUserRoom", user._id);
-      });
-
-      newSocket.on("disconnect", () => {
-        console.log("❌ Socket disconnected.");
-        setIsConnected(false);
-      });
-
-      newSocket.on("connect_error", (err) => {
-        setIsConnected(false);
-        const errorCode = err.data?.code;
-        const errorMessage = err.message.toLowerCase();
-        console.error("Socket Connection Error:", err);
-
-        if (errorCode === "INVALID_TOKEN") {
-          toast.error("Your session is invalid. Please log in again.");
-          logout();
-        } else if (
-          errorMessage.includes("xhr poll error") ||
-          errorMessage.includes("websocket error") ||
-          errorMessage.includes("internet disconnected")
-        ) {
-          console.log(
-            "Socket connection failed due to a network transport issue. Will retry."
+      // FIX: Only create a new socket if one doesn't already exist in the ref.
+      // This prevents the cleanup function from disconnecting a pending connection during a re-render.
+      if (!socketInstance.current) {
+        console.log("User detected, establishing new socket connection.");
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          console.error(
+            "Socket Error: No access token found for logged-in user."
           );
-        } else {
-          toast.error("A real-time connection error occurred.");
+          logout();
+          return;
         }
-      });
 
-      // Listen for custom real-time events
-      newSocket.on("bet_settled", (data) => {
-        if (data.status === "won") {
-          toast.success(`${data.message} You won $${data.payout.toFixed(2)}!`);
-        } else {
-          toast.info(data.message);
-        }
-      });
+        const newSocket = createSocket(token);
+        socketInstance.current = newSocket;
+        setSocket(newSocket);
 
-      newSocket.on("withdrawal_processed", (data) => {
-        if (data.status === "success") {
-          toast.success(data.message);
-        } else {
-          toast.error(data.message);
-        }
-      });
+        // Setup all event listeners on the new socket instance
+        newSocket.on("connect", () => {
+          console.log(
+            `✅ Socket connected successfully with ID: ${newSocket.id}`
+          );
+          setIsConnected(true);
+          newSocket.emit("joinUserRoom", user._id);
+        });
 
-      newSocket.connect();
+        newSocket.on("disconnect", () => {
+          console.log("❌ Socket disconnected.");
+          setIsConnected(false);
+        });
 
-      // The cleanup function for this useEffect instance
-      return () => {
-        console.log("Running cleanup for the user socket effect.");
-        newSocket.off("connect");
-        newSocket.off("disconnect");
-        newSocket.off("connect_error");
-        newSocket.off("bet_settled");
-        newSocket.off("withdrawal_processed");
-        newSocket.disconnect();
-      };
-      // --- End of Correction ---
+        newSocket.on("connect_error", (err) => {
+          setIsConnected(false);
+          const errorCode = err.data?.code;
+          const errorMessage = err.message.toLowerCase();
+          console.error("Socket Connection Error:", err);
+
+          if (errorCode === "INVALID_TOKEN") {
+            toast.error("Your session is invalid. Please log in again.");
+            logout();
+          } else if (
+            errorMessage.includes("xhr poll error") ||
+            errorMessage.includes("websocket error") ||
+            errorMessage.includes("internet disconnected")
+          ) {
+            console.log(
+              "Socket connection failed due to a network transport issue. Will retry."
+            );
+          } else {
+            // Avoid showing a toast for the "closed before connection" error,
+            // as it's often a transient side-effect of fast re-renders.
+            if (!errorMessage.includes("closed before the connection")) {
+              toast.error("A real-time connection error occurred.");
+            }
+          }
+        });
+
+        // Listen for custom real-time events
+        newSocket.on("bet_settled", (data) => {
+          if (data.status === "won") {
+            toast.success(
+              `${data.message} You won $${data.payout.toFixed(2)}!`
+            );
+          } else {
+            toast.info(data.message);
+          }
+        });
+
+        newSocket.on("withdrawal_processed", (data) => {
+          if (data.status === "success") {
+            toast.success(data.message);
+          } else {
+            toast.error(data.message);
+          }
+        });
+
+        newSocket.connect();
+      }
     } else {
-      setIsConnected(false);
+      // If there is no user, disconnect and clean up any existing socket.
       if (socketInstance.current) {
+        console.log("User logged out, cleaning up socket connection...");
         socketInstance.current.disconnect();
         socketInstance.current = null;
         setSocket(null);
+        setIsConnected(false);
       }
     }
+
+    // This cleanup function will run ONLY when the component unmounts,
+    // or when the dependencies (user, logout) change, which is the correct behavior.
+    return () => {
+      if (socketInstance.current) {
+        console.log("Running cleanup for the user socket effect.");
+        socketInstance.current.disconnect();
+        socketInstance.current = null;
+      }
+    };
   }, [user, logout]);
 
   return (

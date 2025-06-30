@@ -26,7 +26,6 @@ const PersonalizedNewsFeed = () => {
   }
 
   if (error) {
-    // Don't show an error, just an empty state.
     return null;
   }
 
@@ -41,7 +40,8 @@ const PersonalizedNewsFeed = () => {
               className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50"
             >
               <h4 className="font-bold text-md">{item.team}</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {/* FIX: Add whitespace-pre-wrap to respect newlines from the AI */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap">
                 {item.summary}
               </p>
             </div>

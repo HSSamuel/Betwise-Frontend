@@ -13,7 +13,7 @@ import BetRow from "../../components/bets/BetRow";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { formatCurrency, capitalize } from "../../utils/helpers";
-import { formatDate, formatTimeAgo } from "../../utils/formatDate"; // Corrected import
+import { formatDate, formatTimeAgo } from "../../utils/formatDate";
 import { useSocket } from "../../contexts/SocketContext";
 import {
   FaUser,
@@ -93,7 +93,7 @@ const AdminUserDetailPage = () => {
     if (userData?.user) {
       setOnlineStatus({
         isOnline: userData.user.isOnline,
-        lastSeen: userData.user.lastSeen || userData.user.createdAt, // Fallback to joined date
+        lastSeen: userData.user.lastSeen || userData.user.createdAt,
       });
     }
   }, [userData]);
@@ -206,7 +206,8 @@ const AdminUserDetailPage = () => {
                 />
               )}
               <p className="text-gray-500">@{user.username}</p>
-              <p className="text-sm">{user.email}</p>
+              {/* FIX: Added 'break-all' class to prevent overflow */}
+              <p className="text-sm break-all">{user.email}</p>
               <p className="text-sm">State: {user.state || "N/A"}</p>
               <p className="text-sm">Joined: {formatDate(user.createdAt)}</p>
               <p className="mt-2 text-xl font-bold">

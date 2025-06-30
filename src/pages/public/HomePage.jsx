@@ -235,7 +235,8 @@ const HomePage = () => {
         )}
       </div>
       <div className="lg:col-span-1">
-        <div className="sticky top-5">
+        {/* MODIFICATION HERE: Added max-h and overflow classes */}
+        <div className="sticky top-5 max-h-[calc(100vh-4rem)] overflow-y-auto">
           <BetSlip />
         </div>
       </div>

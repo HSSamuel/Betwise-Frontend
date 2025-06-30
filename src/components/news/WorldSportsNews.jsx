@@ -1,13 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getGeneralSportsNews } from "../../services/aiService";
 import Card from "../ui/Card";
 import Spinner from "../ui/Spinner";
-import Button from "../ui/Button"; // Import the Button component
+import Button from "../ui/Button";
 import { FaNewspaper, FaSync } from "react-icons/fa";
-import { formatTimeAgo } from "../../utils/formatDate"; // Import the new date formatter
+import { formatTimeAgo } from "../../utils/formatDate";
 
 const WorldSportsNews = () => {
+  // Pass the new option to the useApi hook
   const {
     data,
     loading,
@@ -15,13 +16,17 @@ const WorldSportsNews = () => {
     request: fetchNews,
   } = useApi(getGeneralSportsNews);
 
+  const handleRefresh = useCallback(() => {
+    // FIX: When refreshing, pass the keepPreviousData option
+    fetchNews({ keepPreviousData: true });
+  }, [fetchNews]);
+
   useEffect(() => {
     fetchNews();
   }, [fetchNews]);
 
   const renderContent = () => {
     if (loading && !data) {
-      // Show spinner only on initial load
       return <Spinner />;
     }
     if (error) {
@@ -48,7 +53,6 @@ const WorldSportsNews = () => {
                 <p className="text-xs text-gray-400 dark:text-gray-500">
                   Source: {item.source}
                 </p>
-                {/* FIX: Display the formatted publication date */}
                 {item.publishedDate && (
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                     {formatTimeAgo(item.publishedDate)}
@@ -70,10 +74,9 @@ const WorldSportsNews = () => {
           <FaNewspaper className="mr-3 text-gray-400" />
           Top Sports Headlines
         </h3>
-        {/* FIX: Add a refresh button */}
         <Button
           variant="outline"
-          onClick={fetchNews}
+          onClick={handleRefresh} // Use the new handler
           loading={loading}
           disabled={loading}
           className="!p-2"
