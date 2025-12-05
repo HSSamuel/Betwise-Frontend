@@ -17,11 +17,10 @@ const ForgotPasswordPage = () => {
     setSubmitted(false);
     try {
       await requestPasswordReset(email);
-      // We show a generic success message regardless of whether the email exists
-      // This is a security best practice to prevent email enumeration.
+      // ADD THIS LINE:
+      toast.success("Reset link sent! Check your email.");
       setSubmitted(true);
     } catch (error) {
-      // Also show a generic message on error to prevent leaking info
       setSubmitted(true);
       console.error("Forgot password error:", error);
     } finally {

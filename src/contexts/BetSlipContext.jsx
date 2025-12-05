@@ -1,13 +1,30 @@
-// In: src/contexts/BetSlipContext.jsx
-
-import React, { createContext, useState, useContext, useMemo } from "react";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useMemo,
+  useEffect,
+} from "react";
 import toast from "react-hot-toast";
 
 const BetSlipContext = createContext();
 
-// FIX: Remove 'export' from here to make it a regular constant
 const BetSlipProvider = ({ children }) => {
-  const [selections, setSelections] = useState([]);
+  // 1. Initialize state from localStorage if available
+  const [selections, setSelections] = useState(() => {
+    try {
+      const savedSelections = localStorage.getItem("betSlipSelections");
+      return savedSelections ? JSON.parse(savedSelections) : [];
+    } catch (error) {
+      console.error("Failed to parse bet slip from local storage", error);
+      return [];
+    }
+  });
+
+  // 2. Save to localStorage whenever selections change
+  useEffect(() => {
+    localStorage.setItem("betSlipSelections", JSON.stringify(selections));
+  }, [selections]);
 
   const addSelection = (selection) => {
     let toastMessage = "";
@@ -20,10 +37,12 @@ const BetSlipProvider = ({ children }) => {
 
     if (existingIndex > -1) {
       if (prevSelections[existingIndex].outcome === selection.outcome) {
+        // If clicking the same outcome, remove it (toggle off)
         newSelections = prevSelections.filter(
           (s) => s.gameId !== selection.gameId
         );
       } else {
+        // If clicking a different outcome for the same game, update it
         newSelections = [...prevSelections];
         newSelections[existingIndex] = selection;
         toastMessage = "Selection updated in your bet slip!";
@@ -52,6 +71,7 @@ const BetSlipProvider = ({ children }) => {
 
   const clearSelections = () => {
     setSelections([]);
+    localStorage.removeItem("betSlipSelections"); // Clear storage too
   };
 
   const totalOdds = useMemo(() => {
@@ -77,5 +97,4 @@ const BetSlipProvider = ({ children }) => {
 
 export const useBetSlip = () => useContext(BetSlipContext);
 
-// FIX: Add the component as the default export
 export default BetSlipProvider;

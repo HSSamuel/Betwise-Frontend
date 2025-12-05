@@ -72,7 +72,11 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
         onClose={() => setAnalysisModalOpen(false)}
         title={`AI Analysis: ${game.homeTeam} vs ${game.awayTeam}`}
       >
-        {loading && <Spinner />}
+        {loading && (
+          <div className="py-8">
+            <Spinner />
+          </div>
+        )}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
             <div className="flex">
@@ -91,7 +95,13 @@ const GameCard = ({ game, isConnected, adminActions = null }) => {
           </div>
         )}
         {data && (
-          <p className="text-gray-600 dark:text-gray-300">{data.analysis}</p>
+          // ADDED: Wrapper div for scrolling and compacted height
+          <div className="max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            {/* MODIFIED: Added 'text-justify' class here */}
+            <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-justify">
+              {data.analysis}
+            </p>
+          </div>
         )}
       </Modal>
 
